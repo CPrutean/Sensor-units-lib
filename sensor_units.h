@@ -1,11 +1,12 @@
 #ifndef __SENSOR
 #define __SENSOR
-#include <Arduino.h>
+#include <arduino.h>
 #include <string.h>
 #include <DHT.h>
 #include <time.h>
 #include <HardwareSerial.h>
 #include <TinyGPS++.h>
+
 
 #define GPS_BAUD 9600
 #define MAX_MSG_LENGTH 48
@@ -29,14 +30,14 @@ sensor types are declared within their localized struct
 
 -Simpler sensors like the temperature sensors will be handled within the library
 */
-
+//Pointers to validly initialized objects.
 typedef struct _sensor_unit {
     enum sensor_type modules[3];
-    char available_commands[6][16];
     DHT *dht_sensor;
     HardwareSerial *gpsSerial;
     TinyGPSPlus *gps;
-    _sensor_unit(sensor_type sensors[3], uint8_t DHT_SETUP[2]) {
+    uint8_t CU_ADDR[6];
+    _sensor_unit(sensor_type sensors[3]) {
         int i;
         int sensor_ind = 0;
         for (i = 0; i < 3; i++) {
@@ -44,16 +45,23 @@ typedef struct _sensor_unit {
                 modules[i] = sensors[sensor_ind++];
             }
         }
-        dht_sensor->begin();
-        gpsSerial->begin(GPS_BAUD);
-
     }
 } sensor_unit;
+
+//Each communication unit will be able to communicate with 6 other sensor units
+typedef struct _communication_unit {
+    char* commands[16];
+    char* SSID;
+    char* PSWD;
+    sensor_unit available_SU[6];
+} communication_unit;
+ 
+
 
 typedef struct def_message_struct {
     char message[MAX_MSG_LENGTH];
     int urgency;
-    float value;
+    float values[4];
     unsigned int MSG_ID;
 } def_message_struct;
 

@@ -6,8 +6,10 @@
 #include <time.h>
 #include <HardwareSerial.h>
 #include <TinyGPS++.h>
+#include <esp_now.h>
+#include <WiFi.h>
 
-
+//TODO Implement library response functions, CU espNOW initializations, SU communications with CU, espNOW acknowledgment protocols and scheduling systems using RTOS
 #define GPS_BAUD 9600
 #define MAX_MSG_LENGTH 48
 #define MAX_CMD_LENGTH 16
@@ -30,13 +32,14 @@ sensor types are declared within their localized struct
 
 -Simpler sensors like the temperature sensors will be handled within the library
 */
-//Pointers to validly initialized objects.
+//Pointers to validly initialized objects if 
 typedef struct _sensor_unit {
     enum sensor_type modules[3];
     DHT *dht_sensor;
     HardwareSerial *gpsSerial;
     TinyGPSPlus *gps;
     uint8_t CU_ADDR[6];
+    esp_now_peer_info_t CU_PEER_INF;
     _sensor_unit(sensor_type sensors[3]) {
         int i;
         int sensor_ind = 0;
@@ -48,12 +51,21 @@ typedef struct _sensor_unit {
     }
 } sensor_unit;
 
-//Each communication unit will be able to communicate with 6 other sensor units
+/*
+-Communication units will be able to communicate with sensor units and send them messages as well as serve as a web endpoint for other
+devices and communicate with web devices
+
+-Communication devices will be able to pull data from sensor units and communicate the information to the requesting endpoint
+
+
+*/
 typedef struct _communication_unit {
-    char* commands[16];
+    char* commands[MAX_CMD_LENGTH];
+    sensor_type sensors_avlbl[3]; 
     char* SSID;
     char* PSWD;
     sensor_unit available_SU[6];
+    esp_now_peer_info_t SU_PEER_INF[6];
 } communication_unit;
  
 
@@ -61,11 +73,17 @@ typedef struct _communication_unit {
 typedef struct def_message_struct {
     char message[MAX_MSG_LENGTH];
     int urgency;
-    float values[4];
-    unsigned int MSG_ID;
+    float values[2];
+    unsigned short MSG_ID;
 } def_message_struct;
 
-int return_available_commands(char** array, int len, enum sensor_type sensor);
+int init_CU(sensor_unit *SU_arr, int len, communication_unit *CU, char* ssid, char* pswd);
+
 int handleRequest(char* cmd_passed, def_message_struct *response, sensor_unit CU);
+
+void def_onDataRecv(const u_int8_t* adr, const u_int8_t* data, int len);
+void def_onDataSent(const u_int8_t *addr, esp_now_send_status_t status);
+
+
 
 #endif

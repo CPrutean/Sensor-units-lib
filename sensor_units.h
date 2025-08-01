@@ -1,5 +1,5 @@
-#ifndef __SENSOR
-#define __SENSOR
+#pragma once
+
 #include <arduino.h>
 #include <string.h>
 #include <DHT.h>
@@ -12,9 +12,16 @@
 //TODO Implement library response functions, CU espNOW initializations, SU communications with CU, espNOW acknowledgment protocols and scheduling systems using RTOS
 #define GPS_BAUD 9600
 #define MAX_MSG_LENGTH 48
-#define MAX_CMD_LENGTH 16
+#define MAX_CMD_LENGTH 16  
+#define MAX_QUEUE_LEN 20
 
 enum sensor_type {TEMP_AND_HUMID, GPS, TIME};
+
+sensor_unit *sens_unit_ptr;
+communication_unit *com_unit_ptr;
+bool *newMsgPtr;
+msg_queue *queue;
+
 
 /*
 -Certain things will be handled within the .ino files for the sensor units themselves
@@ -40,6 +47,7 @@ typedef struct _sensor_unit {
     TinyGPSPlus *gps;
     uint8_t CU_ADDR[6];
     esp_now_peer_info_t CU_PEER_INF;
+    def_message_struct lastMsgSent;
     _sensor_unit(sensor_type sensors[3]) {
         int i;
         int sensor_ind = 0;
@@ -62,10 +70,12 @@ devices and communicate with web devices
 typedef struct _communication_unit {
     char* commands[MAX_CMD_LENGTH];
     sensor_type sensors_avlbl[3]; 
+    uint8_t SU_ADDR[6][6];
     char* SSID;
     char* PSWD;
     sensor_unit available_SU[6];
     esp_now_peer_info_t SU_PEER_INF[6];
+    def_message_struct lastMsgSent;
 } communication_unit;
  
 
@@ -77,13 +87,27 @@ typedef struct def_message_struct {
     unsigned short MSG_ID;
 } def_message_struct;
 
+typedef struct msg_queue {
+    def_message_struct messages[MAX_QUEUE_LEN];
+    int millisStartInd[MAX_QUEUE_LEN];
+    int lastQueueInd;
+    int* millis;
+} msg_queue;
+
 int init_CU(sensor_unit *SU_arr, int len, communication_unit *CU, char* ssid, char* pswd);
 
-int handleRequest(char* cmd_passed, def_message_struct *response, sensor_unit CU);
+int handleSURequest(char* cmd_passed, def_message_struct *response, sensor_unit CU);
+int handleCURequest(char* cmd_passed, def_message_struct *response, sensor_unit CU);
 
+int sendMessage(uint8_t brdcstAddr[6], uint8_t* msg, int len);
 void def_onDataRecv(const u_int8_t* adr, const u_int8_t* data, int len);
 void def_onDataSent(const u_int8_t *addr, esp_now_send_status_t status);
 
-
-
-#endif
+//Will pop the first index in line
+void pop(msg_queue *queue);
+//Will pop the index given
+void popAtInd(msg_queue *queue, int ind);
+//Adds a message to the end of the queue
+void addToQueue(def_message_struct, msg_queue *queue);
+//Adds a message to the queue at an index
+void addToQueueInd(msg_queue *queue, int ind);

@@ -12,12 +12,8 @@ const char* time_sensor_cmds[1] = {"PULL TIME"};
 const char* time_sensor_cmds[1] = {"Time"};
 const int time_sensor_urgency[1] = {1};
 
-sensor_unit *sens_unit_ptr;
-communication_unit *com_unit_ptr;
-bool *new_msg_ptr;
-bool *ackRecieved_ptr;
 
-
+#if SENSORUNIT
 int handleRequest(enum sensor_type module, char* cmd_passed, def_message_struct *response, sensor_unit *SU) {
     memset(response, 0, sizeof(response));
     if (module == TEMP_AND_HUMID) {
@@ -32,6 +28,7 @@ int handleRequest(enum sensor_type module, char* cmd_passed, def_message_struct 
     }
     return 0;
 }
+#endif
 
 int handleTempRequests(char* cmd_passed, def_message_struct *response, sensor_unit *SU) {
     if (strncmp(cmd_passed, temp_sensor_cmds[0], 16) == 0) {
@@ -61,10 +58,5 @@ int handleGpsRequests(char* cmd_passed, def_message_struct *response, sensor_uni
         strncpy(response->message, "ERROR WITH GPS_SERIAL", MAX_CMD_LENGTH);
         return -1;
     }
-    return 0;
-}
-
-
-int main() {
     return 0;
 }

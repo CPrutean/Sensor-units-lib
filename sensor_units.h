@@ -14,6 +14,8 @@
 #define MAX_MSG_LENGTH 48
 #define MAX_CMD_LENGTH 16  
 #define MAX_QUEUE_LEN 20
+#define CU
+#define SU
 
 enum sensor_type {TEMP_AND_HUMID, GPS, TIME};
 
@@ -89,7 +91,7 @@ typedef struct def_message_struct {
 
 typedef struct msg_queue {
     def_message_struct messages[MAX_QUEUE_LEN];
-    int millisStartInd[MAX_QUEUE_LEN];
+    int recievedAtMillis[MAX_QUEUE_LEN];
     int lastQueueInd;
     int* millis;
 } msg_queue;

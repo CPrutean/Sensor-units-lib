@@ -1,36 +1,50 @@
 #include "sensor_units.h"
-
-const char* temp_sensor_cmds[2] = {"PULL TEMP", "PULL HUMID"};
-const char* temp_sensor_responses[2] = {"TEMP", "HUMIDITY"};
-const int temp_sensor_urgency[2] = {1, 1};
-
-const char* gps_sensor_cmds[2] = {"PULL LOCATION", "PULL TIME"};
-const char* gps_sensor_responses[2] = {"Lat and long: ", "TIME"};
-const int gps_sensor_urgency[2] = {1, 1};
-
-const char* time_sensor_cmds[1] = {"PULL TIME"};
-const char* time_sensor_cmds[1] = {"Time"};
-const int time_sensor_urgency[1] = {1};
+#define TEMP_SENSOR_IND 0
+#define GPS_SENSOR_IND 1
+#define TIME_SENSOR_IND 2
 
 
-#if SENSORUNIT
-int handleRequest(enum sensor_type module, char* cmd_passed, def_message_struct *response, sensor_unit *SU) {
-    memset(response, 0, sizeof(response));
+char* temp_sensor_cmds[] = {"PULL TEMP", "PULL HUMID", NULL};
+char* temp_sensor_responses[] = {"TEMP", "HUMIDITY", NULL};
+
+char* gps_sensor_cmds[] = {"PULL LOCATION", "PULL TIME", NULL};
+char* gps_sensor_responses[] = {"Lat and long: ", "TIME", NULL};
+
+char* time_sensor_cmds[] = {"PULL TIME", NULL};
+char* time_sensor_cmds[] = {"Time", NULL};
+char** allCmds[] = {temp_sensor_cmds, gps_sensor_cmds, time_sensor_cmds};
+
+
+
+int handleSURequest(char* cmd_passed, sensor_unit *SU, def_message_struct *response) {
+    sensor_type module;
+    int i = 0;
+    int j = 0;
+    while (i < 3) {
+        while (*(allCmds)[j] != NULL) {
+            if (strncmp(cmd_passed, *(allCmds)[j], MAX_CMD_LENGTH) == 0) {
+                module = (enum sensor_type)i;
+                break;
+            }
+            j++;
+        }
+        j=0;
+        i++;
+    }
     if (module == TEMP_AND_HUMID) {
-        handleTempRequests(cmd_passed, response, SU);
-    } else if (module = GPS) {
+        handleTempRequests(cmd_passed, SU, response);
+    } else if (module == GPS) {
         handleGpsRequests(cmd_passed, response, SU);
-    } else if (module = TIME) {
-        
+    } else if (module == TIME) {
+
     } else {
-        strncpy(response->message, "error invalid module passed", MAX_CMD_LENGTH);
         return -1;
     }
-    return 0;
-}
-#endif
 
-int handleTempRequests(char* cmd_passed, def_message_struct *response, sensor_unit *SU) {
+}
+
+
+int handleTempRequests(char* cmd_passed, sensor_unit *SU, def_message_struct *response) {
     if (strncmp(cmd_passed, temp_sensor_cmds[0], 16) == 0) {
         strncpy(response->message, temp_sensor_responses[0], 32);
         response->values[0] = SU->dht_sensor->readTemperature();
@@ -58,5 +72,7 @@ int handleGpsRequests(char* cmd_passed, def_message_struct *response, sensor_uni
         strncpy(response->message, "ERROR WITH GPS_SERIAL", MAX_CMD_LENGTH);
         return -1;
     }
+
+    strncat(response->message, SU->SU_NAME, MAX_MSG_LENGTH);
     return 0;
 }

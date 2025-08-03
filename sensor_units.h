@@ -9,20 +9,27 @@
 #include <esp_now.h>
 #include <WiFi.h>
 
-//TODO Implement library response functions, CU espNOW initializations, SU communications with CU, espNOW acknowledgment protocols and scheduling systems using RTOS
+/* TODO implement communication unit data protocols
+implement error handling and fallbacks for faulty method calls and faulty information handling
+implement communication unity data storage protocols and command handling
+raspberry pi-esp32 communication protocols
+*/
 #define GPS_BAUD 9600
 #define MAX_MSG_LENGTH 48
 #define MAX_CMD_LENGTH 16  
 #define MAX_QUEUE_LEN 20
-#define CU
-#define SU
 
-enum sensor_type {TEMP_AND_HUMID, GPS, TIME};
+//Define these with the sensor units name or the communication units name to allow preprocessor
+//directive to determine which handlerequests method to compile
+//DO NOT initialize both since this will cause a compiler error
+#define SENSORUNIT
+#define COMMUNICATIONUNIT
 
+enum sensor_type {TEMP_AND_HUMID = 0, GPS = 1, TIME = 2};
+
+//Initialize these pointers within your .ino file and set them to the address of these individual objects
 sensor_unit *sens_unit_ptr;
 communication_unit *com_unit_ptr;
-bool *newMsgPtr;
-msg_queue *queue;
 
 
 /*
@@ -44,6 +51,7 @@ sensor types are declared within their localized struct
 //Pointers to validly initialized objects if 
 typedef struct _sensor_unit {
     enum sensor_type modules[3];
+    char* SU_NAME;
     DHT *dht_sensor;
     HardwareSerial *gpsSerial;
     TinyGPSPlus *gps;
@@ -70,8 +78,7 @@ devices and communicate with web devices
 
 */
 typedef struct _communication_unit {
-    char* commands[MAX_CMD_LENGTH];
-    sensor_type sensors_avlbl[3]; 
+    char* commands[MAX_CMD_LENGTH]; 
     uint8_t SU_ADDR[6][6];
     char* SSID;
     char* PSWD;
@@ -84,32 +91,19 @@ typedef struct _communication_unit {
 
 typedef struct def_message_struct {
     char message[MAX_MSG_LENGTH];
-    int urgency;
     float values[2];
-    unsigned short MSG_ID;
 } def_message_struct;
 
-typedef struct msg_queue {
-    def_message_struct messages[MAX_QUEUE_LEN];
-    int recievedAtMillis[MAX_QUEUE_LEN];
-    int lastQueueInd;
-    int* millis;
-} msg_queue;
-
+//Pass in the amount of sensor units you are implementing as well as wifi network your joining and the SSID
 int init_CU(sensor_unit *SU_arr, int len, communication_unit *CU, char* ssid, char* pswd);
 
-int handleSURequest(char* cmd_passed, def_message_struct *response, sensor_unit CU);
-int handleCURequest(char* cmd_passed, def_message_struct *response, sensor_unit CU);
+//Intitialize the sensor unit with the values that you passed to it as well as the sensor attached to the unit itself
+int init_SU_ESPNOW(sensor_unit *SU, int channel);
+
+
+int handleRequestCU(def_message_struct msgRecv);
+int handleRequestSU(char* cmd_passed, def_message_struct *response, sensor_unit *SU);
 
 int sendMessage(uint8_t brdcstAddr[6], uint8_t* msg, int len);
 void def_onDataRecv(const u_int8_t* adr, const u_int8_t* data, int len);
 void def_onDataSent(const u_int8_t *addr, esp_now_send_status_t status);
-
-//Will pop the first index in line
-void pop(msg_queue *queue);
-//Will pop the index given
-void popAtInd(msg_queue *queue, int ind);
-//Adds a message to the end of the queue
-void addToQueue(def_message_struct, msg_queue *queue);
-//Adds a message to the queue at an index
-void addToQueueInd(msg_queue *queue, int ind);

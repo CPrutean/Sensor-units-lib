@@ -3,7 +3,8 @@
 
 //The channel should determined within the individual .ino file for the SU to prevent intercommunication with other SU
 //Each SU should be on its own channel communicating only with CU's
-void init_SU_ESPNOW(sensor_unit *SU, int channel) {
+int init_SU_ESPNOW(sensor_unit *SU, int channel) {
+    int return_val = 0;
     WiFi.mode(WIFI_STA);
     if (esp_now_init() != ESP_OK) {
         Serial.println("Failed to init espNOW");
@@ -14,13 +15,17 @@ void init_SU_ESPNOW(sensor_unit *SU, int channel) {
 
     if (esp_now_add_peer(&SU->CU_PEER_INF)!= ESP_OK) {
         Serial.println("Failed to add peer");
+        return_val = -1;
     }
 
     esp_now_register_send_cb(def_onDataSent);
     esp_now_register_recv_cb(esp_now_recv_cb_t(def_onDataSent));
+    return return_val;
 }
 
-int init_CU(sensor_unit *SU_arr, int len, communication_unit *CU, char* ssid, char* pswd) {
+
+
+int init_CU_ESPNOW(sensor_unit *SU_arr, int len, communication_unit *CU, char* ssid, char* pswd) {
     WiFi.mode(WIFI_STA);
     if (esp_now_init() != ESP_OK) {
         Serial.println("Failed to init espNOW");
@@ -45,12 +50,12 @@ int init_CU(sensor_unit *SU_arr, int len, communication_unit *CU, char* ssid, ch
     return return_val;
 }
 
-int sendMessage(uint8_t brdcstAddr[6], uint8_t* msg, int len, def_message_struct *recieve) {
+int sendMessage(uint8_t brdcstAddr[6], uint8_t* msg, int len) {
     esp_err_t result =  esp_now_send(brdcstAddr, msg, len);
     if (result != ESP_OK) {
         return -1;
     } else {
-        
+        return 0;    
     }
 }
 
@@ -64,9 +69,15 @@ void def_onDataSent(const u_int8_t *addr, esp_now_send_status_t status) {
 }
 
 void def_onDataRecv(const u_int8_t* adr, const u_int8_t* data, int len) {
-    *newMsgPtr = true;
     def_message_struct msg;
     memcpy(&msg, data, sizeof(msg));
-    addToQueue(msg, queue);
-}
 
+
+    def_message_struct response;
+    if (sens_unit_ptr != nullptr) {
+        handleRequestSU(msg.message, &response, sens_unit_ptr);
+        sendMessage(sens_unit_ptr->CU_ADDR, (u_int8_t*)&response, sizeof(response));
+    } else if (com_unit_ptr != nullptr){
+        handleRequestCU(msg);
+    }
+}

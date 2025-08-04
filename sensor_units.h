@@ -9,6 +9,7 @@
 #include <esp_now.h>
 #include <WiFi.h>
 #include <EEPROM.h>
+#include <LCD_I2C.h>
 
 /* TODO
 implement error handling and fallbacks for faulty method calls and faulty information handling
@@ -27,9 +28,13 @@ implement pulldown for communication units as well as implement
 #define MAX_MSG_LENGTH 48
 #define MAX_CMD_LENGTH 16  
 #define MAX_QUEUE_LEN 20
+#define EEPROM_SIZE 512
+#define MAX_READINGS 80
+#define MAX_QUEUE_LEN 25
 
-#define EEPROM_SIZE 1
-#define EEPROM_DATA_AVLBL 200
+//UN COMMENT THIS WHEN INITIALIZING THE LCD_I2C OBJECT
+//Change the address as needed default i2c addresses for backpacks are 0x27
+//#define LCD_I2C_ADDR 0x27
 
 enum sensor_type {TEMP_AND_HUMID = 0, GPS = 1, TIME = 2};
 enum sensor_unit_status {ONLINE = 0, ERROR, OFFLINE};
@@ -38,6 +43,10 @@ enum sensor_unit_status {ONLINE = 0, ERROR, OFFLINE};
 sensor_unit *sens_unit_ptr;
 communication_unit *com_unit_ptr;
 
+//Define LCD_I2C_ADDR for error handling and testing and visible erorr handling
+#ifdef LCD_I2C_ADDR
+LCD_I2C LCD(LCD_I2C_ADDR, 16, 2);
+#endif
 
 /*
 -Certain things will be handled within the .ino files for the sensor units themselves
@@ -55,25 +64,16 @@ sensor types are declared within their localized struct
 
 -Simpler sensors like the temperature sensors will be handled within the library
 */
+
 //Pointers to validly initialized objects if 
 typedef struct _sensor_unit {
     enum sensor_type modules[3];
-    char* SU_NAME;
     DHT *dht_sensor;
     HardwareSerial *gpsSerial;
     TinyGPSPlus *gps;
     uint8_t CU_ADDR[6];
     esp_now_peer_info_t CU_PEER_INF;
-    def_message_struct lastMsgSent;
-    _sensor_unit(sensor_type sensors[3]) {
-        int i;
-        int sensor_ind = 0;
-        for (i = 0; i < 3; i++) {
-            if (modules[i] == NULL) {
-                modules[i] = sensors[sensor_ind++];
-            }
-        }
-    }
+    msg_queue *queue;
 } sensor_unit;
 
 /*
@@ -85,13 +85,14 @@ devices and communicate with web devices
 
 */
 typedef struct _communication_unit {
-    char* commands[MAX_CMD_LENGTH]; 
+    char* commands[6][16]; 
     uint8_t SU_ADDR[6][6];
     char* SSID;
     char* PSWD;
-    sensor_unit available_SU[6];
     esp_now_peer_info_t SU_PEER_INF[6];
     enum sensor_unit_status status[6];
+    enum sensor_type SU_AVLBL_MODULES[6][3];
+    msg_queue *queue;
 } communication_unit;
  
 
@@ -99,6 +100,7 @@ typedef struct _communication_unit {
 typedef struct def_message_struct {
     char message[MAX_MSG_LENGTH];
     float values[2];
+    uint8_t senderAddr[6];
 } def_message_struct;
 
 
@@ -115,6 +117,20 @@ typedef struct dataHash {
     uint8_t ind;
 } dataHash;
 
+typedef struct msg_queue {
+    def_message_struct msgs[MAX_QUEUE_LEN];
+    int lastInd;
+} msg_queue;
+
+void handleCUQueue(communication_unit *cu);
+void handleSUQueue(sensor_unit *su);
+void addToQueue(msg_queue *queue, def_message_struct message);
+void addToQueue(msg_queue * queue, def_message_struct message, int ind);
+void pop(msg_queue *queue);
+void pop(msg_queue *queue, int ind);
+void clearQueue(msg_queue *queue);
+
+
 //Pass in the amount of sensor units you are implementing as well as wifi network your joining and the SSID
 int init_CU(sensor_unit *SU_arr, int len, communication_unit *CU, char* ssid, char* pswd);
 
@@ -122,7 +138,7 @@ int init_CU(sensor_unit *SU_arr, int len, communication_unit *CU, char* ssid, ch
 int init_SU_ESPNOW(sensor_unit *SU, int channel);
 
 
-int handleRequestCU(def_message_struct msgRecv);
+int handleRequestCU(def_message_struct msgRecv, const uint8_t *adr);
 int handleRequestSU(char* cmd_passed, def_message_struct *response);
 
 int sendMessage(uint8_t brdcstAddr[6], uint8_t* msg, int len);

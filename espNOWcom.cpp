@@ -19,19 +19,23 @@ int init_SU_ESPNOW(sensor_unit *SU, int channel) {
 
     esp_now_register_send_cb(def_onDataSent);
     esp_now_register_recv_cb(esp_now_recv_cb_t(def_onDataSent));
+
     return return_val;
 }
 
 
 
 int init_CU_ESPNOW(sensor_unit *SU_arr, int len, communication_unit *CU, char* ssid, char* pswd) {
+    #ifdef LCD_I2C_ADDR
+    LCD.begin(); 
+    #endif
     WiFi.mode(WIFI_STA);
     if (esp_now_init() != ESP_OK) {
         Serial.println("Failed to init espNOW");
         return -1;
     }
     int i;
-    int len = sizeof(CU->available_SU)/sizeof(CU->available_SU[0]);
+    int len = sizeof(CU->SU_ADDR)/sizeof(CU->SU_ADDR[0]);
     int return_val = 0;
     for (i = 0; i < len; i++) {
         memcpy(&CU->SU_PEER_INF[i].peer_addr,CU->SU_ADDR[i], 6);
@@ -69,13 +73,12 @@ void def_onDataSent(const u_int8_t *addr, esp_now_send_status_t status) {
 
 void def_onDataRecv(const u_int8_t* adr, const u_int8_t* data, int len) {
     def_message_struct msg;
+    memset(&msg, 0, sizeof(msg));
     memcpy(&msg, data, sizeof(msg));
+    handleCallback(msg);
+}
 
-    def_message_struct response;
-    if (sens_unit_ptr != nullptr) {
-        handleRequestSU(msg.message, &response);
-        sendMessage(sens_unit_ptr->CU_ADDR, (u_int8_t*)&response, sizeof(response));
-    } else if (com_unit_ptr != nullptr){
-        handleRequestCU(msg);
-    }
+//TODO implement callback function make sure that it is as lightweight as possible to ensure that onDataRecv function doesn't take too long
+void handleCallback(def_message_struct response) {
+
 }

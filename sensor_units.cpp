@@ -18,9 +18,23 @@ int handleSURequest(char* cmd_passed, def_message_struct *response) {
         strncpy(response->message, "sens_unit_ptr wasnt initialized", MAX_MSG_LENGTH);
         return -1;
     }
-
-
-
+    int i;
+    int j;
+    union data val;
+    for (i = 0; i < 3; i++) {
+        while (*(allCmds+i)[j] != NULL) {
+            if (strncmp(cmd_passed, *(allCmds+i)[j], MAX_CMD_LENGTH) == 0) {
+                readFromEEPROM((enum sensor_type)i, j, &val);
+                break;
+            }
+            j++;
+        }
+        j = 0;
+    }
+    memset(response, 0, sizeof(*response));
+    strncpy(response->message, *(allCmds+i)[j], MAX_MSG_LENGTH);
+    response->values[0] = val.val;
+    return 0;
 }
 
 
@@ -29,8 +43,8 @@ int handleSURequest(char* cmd_passed, def_message_struct *response) {
 //the first 4 bytes within the data union will contain the bytes for each individual float, while the 5th corresponds to the
 //index of the value sensors command index (EX: if we are pulling temp the value passed to the byte is 0 corresponding to index 0 of temp_sensor_cmds)
 void readAll(sensor_unit *SU) {
-    float readings[50];
-    enum sensor_type sensorHash[50];
+    float readings[MAX_READINGS];
+    enum sensor_type sensorHash[MAX_READINGS];
     int readingsInd;
     readTempAndHumid(readings, sensorHash, SU, &readingsInd);
 
@@ -64,8 +78,8 @@ void readGPSLatAndLong(float* readings, enum sensor_type *sensorHash, sensor_uni
 //Writes all values passed to EEPROM
 //To prevent excessive read and write limits writings will only be staged to commit when youre pushing multiple commands
 //Addresses will be stored after the available index for information
-void writeToEEPROM(float readings[50], enum sensor_type sensorHash[50], int numReadings) {
-    if (EEPROM.begin(512)) {
+void writeToEEPROM(float readings[MAX_READINGS], enum sensor_type sensorHash[MAX_READINGS], int numReadings) {
+    if (EEPROM.begin(EEPROM_SIZE)) {
         Serial.println("Succesfully initialized EEPROM");
     } else {
         Serial.println("Failed to intialize EEPROM");
@@ -102,18 +116,24 @@ void writeToEEPROM(float readings[50], enum sensor_type sensorHash[50], int numR
 
 
 void readFromEEPROM(sensor_type sensor, int ind, union data *val) {
+    if (EEPROM.begin(EEPROM_SIZE)) {
+        Serial.println("Succesfully initialized EEPROM");
+    } else {
+        Serial.println("Failed to intialize EEPROM");
+    }
+
     int i = 0;
     int j;
-    while (i < EEPROM_DATA_AVLBL) {
+    while (i < EEPROM_SIZE) {
         if (EEPROM.read(i+4) == (uint8_t)sensor && EEPROM.read(i+5) == (uint8_t)ind) {
             for (j = 0; j < 4; j++) {
                 val->bytes[j] = EEPROM.read(i+j);
             }
             val->bytes[4] = EEPROM.read(i+4);
             val->bytes[5] = EEPROM.read(i+5);
-            break;
+            return;
         }
         i+=6;
     }
-
+    EEPROM.end();
 }

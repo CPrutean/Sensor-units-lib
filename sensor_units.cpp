@@ -1,78 +1,119 @@
 #include "sensor_units.h"
-#define TEMP_SENSOR_IND 0
-#define GPS_SENSOR_IND 1
-#define TIME_SENSOR_IND 2
-
 
 char* temp_sensor_cmds[] = {"PULL TEMP", "PULL HUMID", NULL};
 char* temp_sensor_responses[] = {"TEMP", "HUMIDITY", NULL};
 
-char* gps_sensor_cmds[] = {"PULL LOCATION", "PULL TIME", NULL};
-char* gps_sensor_responses[] = {"Lat and long: ", "TIME", NULL};
+char* gps_sensor_cmds[] = {"PULL LOCATION", NULL};
+char* gps_sensor_responses[] = {"Lat and long: ", NULL};
 
 char* time_sensor_cmds[] = {"PULL TIME", NULL};
 char* time_sensor_cmds[] = {"Time", NULL};
+
 char** allCmds[] = {temp_sensor_cmds, gps_sensor_cmds, time_sensor_cmds};
 
 
 
-int handleSURequest(char* cmd_passed, sensor_unit *SU, def_message_struct *response) {
-    sensor_type module;
-    int i = 0;
-    int j = 0;
-    while (i < 3) {
-        while (*(allCmds)[j] != NULL) {
-            if (strncmp(cmd_passed, *(allCmds)[j], MAX_CMD_LENGTH) == 0) {
-                module = (enum sensor_type)i;
-                break;
-            }
-            j++;
-        }
-        j=0;
-        i++;
-    }
-    if (module == TEMP_AND_HUMID) {
-        handleTempRequests(cmd_passed, SU, response);
-    } else if (module == GPS) {
-        handleGpsRequests(cmd_passed, response, SU);
-    } else if (module == TIME) {
-
-    } else {
+int handleSURequest(char* cmd_passed, def_message_struct *response) {
+    if (sens_unit_ptr == nullptr) {
+        strncpy(response->message, "sens_unit_ptr wasnt initialized", MAX_MSG_LENGTH);
         return -1;
     }
+
+
 
 }
 
 
-int handleTempRequests(char* cmd_passed, sensor_unit *SU, def_message_struct *response) {
-    if (strncmp(cmd_passed, temp_sensor_cmds[0], 16) == 0) {
-        strncpy(response->message, temp_sensor_responses[0], 32);
-        response->values[0] = SU->dht_sensor->readTemperature();
-    } else if (strncmp(cmd_passed, temp_sensor_cmds[1], MAX_CMD_LENGTH)) {
-        strncpy(response->message, temp_sensor_responses[1], 32);
-        response->values[0] = SU->dht_sensor->readHumidity();
-    } else {
-        return -1;
-    }
-    return 0;
+//For the sake of storing something in EEPROM we are going to be using floats and unions for bytes
+//The data union contains 2 values, one for a float and one for 5 bytes
+//the first 4 bytes within the data union will contain the bytes for each individual float, while the 5th corresponds to the
+//index of the value sensors command index (EX: if we are pulling temp the value passed to the byte is 0 corresponding to index 0 of temp_sensor_cmds)
+void readAll(sensor_unit *SU) {
+    float readings[50];
+    enum sensor_type sensorHash[50];
+    int readingsInd;
+    readTempAndHumid(readings, sensorHash, SU, &readingsInd);
+
+    readGPSLatAndLong(readings, sensorHash, SU, &readingsInd);
+
+    writeToEEPROM(readings, sensorHash, readingsInd+1);
 }
 
+//
+void readTempAndHumid(float* readings, enum sensor_type *sensorHash, sensor_unit *SU, int* readingsInd) {
+    if (SU->dht_sensor != nullptr) {
+        readings[*readingsInd] = SU->dht_sensor->readTemperature();
+        sensorHash[*(readingsInd)++] = TEMP_AND_HUMID;
+        
+        readings[*readingsInd] = SU->dht_sensor->readHumidity();
+        sensorHash[*(readingsInd)++] = TEMP_AND_HUMID;
+    }
+}
 
 //GPS sensors are also equipped with fully capable time modules
-int handleGpsRequests(char* cmd_passed, def_message_struct *response, sensor_unit *SU) {
-    if (!strncmp(cmd_passed, gps_sensor_cmds[0], MAX_CMD_LENGTH) == 0 &&  SU->gpsSerial->available()) {
-        strncpy(response->message, gps_sensor_responses[0], MAX_MSG_LENGTH);
-        response->values[0] = SU->gps->location.lat();
-        response->values[1] = SU->gps->location.lng();
+void readGPSLatAndLong(float* readings, enum sensor_type *sensorHash, sensor_unit *SU, int* readingsInd) {
+    if (SU->gpsSerial != nullptr) {
+        readings[*readingsInd] = SU->gps->location.lat();
+        readings[*(readingsInd)++] = GPS;
 
-    } else if (!strncmp(cmd_passed, "PULL TIME", MAX_CMD_LENGTH) && SU->gpsSerial->available()) {
-        strncpy(response->message, gps_sensor_responses[1], MAX_MSG_LENGTH);
-        
-    } else if (!SU->gpsSerial->available()) {
-        strncpy(response->message, "ERROR WITH GPS_SERIAL", MAX_CMD_LENGTH);
-        return -1;
+        readings[*readingsInd] = SU->gps->location.lng();
+        readings[*(readingsInd)++] = GPS;
+    }
+}
+
+//Writes all values passed to EEPROM
+//To prevent excessive read and write limits writings will only be staged to commit when youre pushing multiple commands
+//Addresses will be stored after the available index for information
+void writeToEEPROM(float readings[50], enum sensor_type sensorHash[50], int numReadings) {
+    if (EEPROM.begin(512)) {
+        Serial.println("Succesfully initialized EEPROM");
+    } else {
+        Serial.println("Failed to intialize EEPROM");
     }
 
-    strncat(response->message, SU->SU_NAME, MAX_MSG_LENGTH);
-    return 0;
+    union data vals[numReadings];
+    dataHash valsHash[numReadings];
+
+    int i = 0;
+    int hashInd = 0;
+    int j;
+    for (i = 0; i < numReadings; i++) {
+        if (i > 0 && sensorHash[i] == sensorHash[i-1]) {
+            hashInd++;
+        } else {
+            hashInd = 0;
+        }
+        vals[i].val = readings[i];
+        vals[i].bytes[4] = (uint8_t)sensorHash[i];
+        vals[i].bytes[5] = (uint8_t)hashInd;
+        for (j = 0; j < 4; j++) {
+            EEPROM.write((i*6)+j, vals[i].bytes[j]);
+        }
+    }
+
+    if (EEPROM.commit()) {
+        Serial.print("EEPROM commit was succesful");
+    } else {
+        Serial.print("EEPROM commit was a failure");
+    }
+    EEPROM.end();
+}
+
+
+
+void readFromEEPROM(sensor_type sensor, int ind, union data *val) {
+    int i = 0;
+    int j;
+    while (i < EEPROM_DATA_AVLBL) {
+        if (EEPROM.read(i+4) == (uint8_t)sensor && EEPROM.read(i+5) == (uint8_t)ind) {
+            for (j = 0; j < 4; j++) {
+                val->bytes[j] = EEPROM.read(i+j);
+            }
+            val->bytes[4] = EEPROM.read(i+4);
+            val->bytes[5] = EEPROM.read(i+5);
+            break;
+        }
+        i+=6;
+    }
+
 }

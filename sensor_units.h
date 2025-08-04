@@ -8,24 +8,31 @@
 #include <TinyGPS++.h>
 #include <esp_now.h>
 #include <WiFi.h>
+#include <EEPROM.h>
 
-/* TODO implement communication unit data protocols
+/* TODO
 implement error handling and fallbacks for faulty method calls and faulty information handling
+
 implement communication unity data storage protocols and command handling
-raspberry pi-esp32 communication protocols
+
+raspberry pi-esp32 communication
+
+implement reading storage to collect and store a number of readings that will be stored and can be relayed back to the main 
+cluster unit
+
+implement pulldown for communication units as well as implement 
+
 */
 #define GPS_BAUD 9600
 #define MAX_MSG_LENGTH 48
 #define MAX_CMD_LENGTH 16  
 #define MAX_QUEUE_LEN 20
 
-//Define these with the sensor units name or the communication units name to allow preprocessor
-//directive to determine which handlerequests method to compile
-//DO NOT initialize both since this will cause a compiler error
-#define SENSORUNIT
-#define COMMUNICATIONUNIT
+#define EEPROM_SIZE 1
+#define EEPROM_DATA_AVLBL 200
 
 enum sensor_type {TEMP_AND_HUMID = 0, GPS = 1, TIME = 2};
+enum sensor_unit_status {ONLINE = 0, ERROR, OFFLINE};
 
 //Initialize these pointers within your .ino file and set them to the address of these individual objects
 sensor_unit *sens_unit_ptr;
@@ -84,7 +91,7 @@ typedef struct _communication_unit {
     char* PSWD;
     sensor_unit available_SU[6];
     esp_now_peer_info_t SU_PEER_INF[6];
-    def_message_struct lastMsgSent;
+    enum sensor_unit_status status[6];
 } communication_unit;
  
 
@@ -94,6 +101,20 @@ typedef struct def_message_struct {
     float values[2];
 } def_message_struct;
 
+
+//For EEPROM readings we will take a float pass it into EEPROM read and write cycles.
+//The 5th byte represents the index of the command needed to return the temperature and the humidity
+//Example: (If the value of the 5th byte is 0 that means were requesting the temperature as that corresponds to index 0 of the array within the temperature commands)
+union data {
+    float val;
+    uint8_t bytes[6];
+} data;
+
+typedef struct dataHash {
+    uint8_t sensor;
+    uint8_t ind;
+} dataHash;
+
 //Pass in the amount of sensor units you are implementing as well as wifi network your joining and the SSID
 int init_CU(sensor_unit *SU_arr, int len, communication_unit *CU, char* ssid, char* pswd);
 
@@ -102,7 +123,7 @@ int init_SU_ESPNOW(sensor_unit *SU, int channel);
 
 
 int handleRequestCU(def_message_struct msgRecv);
-int handleRequestSU(char* cmd_passed, def_message_struct *response, sensor_unit *SU);
+int handleRequestSU(char* cmd_passed, def_message_struct *response);
 
 int sendMessage(uint8_t brdcstAddr[6], uint8_t* msg, int len);
 void def_onDataRecv(const u_int8_t* adr, const u_int8_t* data, int len);

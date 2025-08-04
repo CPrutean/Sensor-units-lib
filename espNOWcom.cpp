@@ -1,6 +1,5 @@
 #include "sensor_units.h"
 
-
 //The channel should determined within the individual .ino file for the SU to prevent intercommunication with other SU
 //Each SU should be on its own channel communicating only with CU's
 int init_SU_ESPNOW(sensor_unit *SU, int channel) {
@@ -72,10 +71,9 @@ void def_onDataRecv(const u_int8_t* adr, const u_int8_t* data, int len) {
     def_message_struct msg;
     memcpy(&msg, data, sizeof(msg));
 
-
     def_message_struct response;
     if (sens_unit_ptr != nullptr) {
-        handleRequestSU(msg.message, &response, sens_unit_ptr);
+        handleRequestSU(msg.message, &response);
         sendMessage(sens_unit_ptr->CU_ADDR, (u_int8_t*)&response, sizeof(response));
     } else if (com_unit_ptr != nullptr){
         handleRequestCU(msg);

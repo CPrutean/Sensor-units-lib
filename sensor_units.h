@@ -36,7 +36,7 @@ implement pulldown for communication units as well as implement
 //Change the address as needed default i2c addresses for backpacks are 0x27
 //#define LCD_I2C_ADDR 0x27
 
-enum sensor_type {TEMP_AND_HUMID = 0, GPS = 1, TIME = 2};
+enum sensor_type {TEMP_AND_HUMID = 0, GPS, TIME, NUM_OF_SENSORS};
 enum sensor_unit_status {ONLINE = 0, ERROR, OFFLINE};
 
 //Initialize these pointers within your .ino file and set them to the address of these individual objects
@@ -73,7 +73,7 @@ typedef struct _sensor_unit {
     TinyGPSPlus *gps;
     uint8_t CU_ADDR[6];
     esp_now_peer_info_t CU_PEER_INF;
-    msg_queue *queue;
+    msg_queue queue();
 } sensor_unit;
 
 /*
@@ -92,7 +92,6 @@ typedef struct _communication_unit {
     esp_now_peer_info_t SU_PEER_INF[6];
     enum sensor_unit_status status[6];
     enum sensor_type SU_AVLBL_MODULES[6][3];
-    msg_queue *queue;
 } communication_unit;
  
 
@@ -107,32 +106,15 @@ typedef struct def_message_struct {
 //For EEPROM readings we will take a float pass it into EEPROM read and write cycles.
 //The 5th byte represents the index of the command needed to return the temperature and the humidity
 //Example: (If the value of the 5th byte is 0 that means were requesting the temperature as that corresponds to index 0 of the array within the temperature commands)
-union data {
+typedef struct EEPROMData {
     float val;
-    uint8_t bytes[6];
-} data;
-
-typedef struct dataHash {
     uint8_t sensor;
     uint8_t ind;
-} dataHash;
-
-typedef struct msg_queue {
-    def_message_struct msgs[MAX_QUEUE_LEN];
-    int lastInd;
-} msg_queue;
-
-void handleCUQueue(communication_unit *cu);
-void handleSUQueue(sensor_unit *su);
-void addToQueue(msg_queue *queue, def_message_struct message);
-void addToQueue(msg_queue * queue, def_message_struct message, int ind);
-void pop(msg_queue *queue);
-void pop(msg_queue *queue, int ind);
-void clearQueue(msg_queue *queue);
-
+} EEPROMData;
+class msg_queue;
 
 //Pass in the amount of sensor units you are implementing as well as wifi network your joining and the SSID
-int init_CU(sensor_unit *SU_arr, int len, communication_unit *CU, char* ssid, char* pswd);
+int init_CU(communication_unit *CU);
 
 //Intitialize the sensor unit with the values that you passed to it as well as the sensor attached to the unit itself
 int init_SU_ESPNOW(sensor_unit *SU, int channel);

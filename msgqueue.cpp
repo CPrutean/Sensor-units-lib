@@ -1,30 +1,29 @@
 #include "sensor_units.h"
 
 
-void handleCUQueue(communication_unit *cu) {
+class msg_queue {
+public:
+    //Adds a message to the end of the queue
+    void add(def_message_struct msg) {
 
-}
+    }
+    //adds a message to the provided index
+    void add(def_message_struct msg, int ind) {
 
-void handleSUQueue(sensor_unit *su) {
+    }
+    //clears the queue
+    void clear() {
 
-}
+    }
+    //removes the message at index 0 index
+    void pop() {
 
-void addToQueue(msg_queue *queue, def_message_struct message) {
+    }
+    //removes the message at the given index
+    void pop(int ind) {
 
-}
-
-void addToQueue(msg_queue * queue, def_message_struct message, int ind) {
-
-}
-
-void pop(msg_queue *queue) {
-
-}
-
-void pop(msg_queue *queue, int ind) {
-
-}
-
-void clearQueue(msg_queue *queue) {
-
-}
+    }
+private:
+    def_message_struct msgs[MAX_QUEUE_LEN];
+    int finalInd;
+};

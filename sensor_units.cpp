@@ -9,7 +9,7 @@ char* gps_sensor_responses[] = {"Lat and long: ", NULL};
 char* time_sensor_cmds[] = {"PULL TIME", NULL};
 char* time_sensor_cmds[] = {"Time", NULL};
 
-char** allCmds[] = {temp_sensor_cmds, gps_sensor_cmds, time_sensor_cmds};
+char** allCmds[] = {temp_sensor_cmds, gps_sensor_cmds, time_sensor_cmds, NULL};
 
 
 
@@ -19,22 +19,23 @@ int handleSURequest(char* cmd_passed, def_message_struct *response) {
         return -1;
     }
     int i;
-    int j;
-    union data val;
-    for (i = 0; i < 3; i++) {
+    int j = 0;
+    EEPROMData data;
+    
+    for (i = 0; i < (int)NUM_OF_SENSORS; i++) {
         while (*(allCmds+i)[j] != NULL) {
-            if (strncmp(cmd_passed, *(allCmds+i)[j], MAX_CMD_LENGTH) == 0) {
-                readFromEEPROM((enum sensor_type)i, j, &val);
-                break;
+            if (!strncmp(cmd_passed, *(allCmds+i)[j], MAX_CMD_LENGTH) && readFromEEPROM(sensor_type(i), j, &data)) {
+                memset(&response, 0, sizeof(response));
+                strncpy(response->message, *(allCmds+i)[j], MAX_MSG_LENGTH);
+                response->values[0] = data.val;
+                sendMessage(sens_unit_ptr->CU_ADDR, (uint8_t*)response, sizeof(*response));
+                return 0;
             }
             j++;
         }
         j = 0;
     }
-    memset(response, 0, sizeof(*response));
-    strncpy(response->message, *(allCmds+i)[j], MAX_MSG_LENGTH);
-    response->values[0] = val.val;
-    return 0;
+    return -1;
 }
 
 
@@ -54,7 +55,7 @@ void readAll(sensor_unit *SU) {
 }
 
 //
-void readTempAndHumid(float* readings, enum sensor_type *sensorHash, sensor_unit *SU, int* readingsInd) {
+void readTempAndHumid(float* readings, sensor_type *sensorHash, sensor_unit *SU, int* readingsInd) {
     if (SU->dht_sensor != nullptr) {
         readings[*readingsInd] = SU->dht_sensor->readTemperature();
         sensorHash[*(readingsInd)++] = TEMP_AND_HUMID;
@@ -65,7 +66,7 @@ void readTempAndHumid(float* readings, enum sensor_type *sensorHash, sensor_unit
 }
 
 //GPS sensors are also equipped with fully capable time modules
-void readGPSLatAndLong(float* readings, enum sensor_type *sensorHash, sensor_unit *SU, int* readingsInd) {
+void readGPSLatAndLong(float* readings, sensor_type *sensorHash, sensor_unit *SU, int* readingsInd) {
     if (SU->gpsSerial != nullptr) {
         readings[*readingsInd] = SU->gps->location.lat();
         readings[*(readingsInd)++] = GPS;
@@ -78,33 +79,52 @@ void readGPSLatAndLong(float* readings, enum sensor_type *sensorHash, sensor_uni
 //Writes all values passed to EEPROM
 //To prevent excessive read and write limits writings will only be staged to commit when youre pushing multiple commands
 //Addresses will be stored after the available index for information
-void writeToEEPROM(float readings[MAX_READINGS], enum sensor_type sensorHash[MAX_READINGS], int numReadings) {
+
+void clearEEPROM() {
+    if (!EEPROM.begin(EEPROM_SIZE)) {
+        Serial.println("Failed to initialize EEPROM for clearing.");
+        return;
+    }
+    Serial.println("Clearing EEPROM...");
+    for (int i = 0; i < EEPROM_SIZE; i++) {
+        EEPROM.write(i, 0xFF); // Write 0xFF (erased state) to each byte
+    }
+    if (EEPROM.commit()) {
+        Serial.println("EEPROM successfully cleared.");
+    } else {
+        Serial.println("Failed to commit EEPROM clear.");
+    }
+    EEPROM.end();
+}
+
+
+void writeToEEPROM(float readings[MAX_READINGS], sensor_type sensorHash[MAX_READINGS], int numReadings) {
+    clearEEPROM();
+
     if (EEPROM.begin(EEPROM_SIZE)) {
         Serial.println("Succesfully initialized EEPROM");
     } else {
         Serial.println("Failed to intialize EEPROM");
     }
-
-    union data vals[numReadings];
-    dataHash valsHash[numReadings];
-
-    int i = 0;
+    int i;
     int hashInd = 0;
-    int j;
+    EEPROMData arr[numReadings];
+
+    int EEPROMInd = 0;
+    int EEPROMSize = sizeof(EEPROMData);
     for (i = 0; i < numReadings; i++) {
         if (i > 0 && sensorHash[i] == sensorHash[i-1]) {
             hashInd++;
         } else {
             hashInd = 0;
         }
-        vals[i].val = readings[i];
-        vals[i].bytes[4] = (uint8_t)sensorHash[i];
-        vals[i].bytes[5] = (uint8_t)hashInd;
-        for (j = 0; j < 4; j++) {
-            EEPROM.write((i*6)+j, vals[i].bytes[j]);
-        }
+        arr[i].val = readings[i];
+        arr[i].sensor = (uint8_t)sensorHash[i];
+        arr[i].ind = hashInd;
+        EEPROM.put(EEPROMInd, arr[i]);
+        EEPROMInd += EEPROMSize;
     }
-
+    
     if (EEPROM.commit()) {
         Serial.print("EEPROM commit was succesful");
     } else {
@@ -115,25 +135,24 @@ void writeToEEPROM(float readings[MAX_READINGS], enum sensor_type sensorHash[MAX
 
 
 
-void readFromEEPROM(sensor_type sensor, int ind, union data *val) {
+bool readFromEEPROM(sensor_type sensor, int ind, EEPROMData *data) {
     if (EEPROM.begin(EEPROM_SIZE)) {
         Serial.println("Succesfully initialized EEPROM");
     } else {
         Serial.println("Failed to intialize EEPROM");
     }
-
-    int i = 0;
-    int j;
-    while (i < EEPROM_SIZE) {
-        if (EEPROM.read(i+4) == (uint8_t)sensor && EEPROM.read(i+5) == (uint8_t)ind) {
-            for (j = 0; j < 4; j++) {
-                val->bytes[j] = EEPROM.read(i+j);
-            }
-            val->bytes[4] = EEPROM.read(i+4);
-            val->bytes[5] = EEPROM.read(i+5);
-            return;
+    EEPROMData data;
+    EEPROMData temp;
+    int i;
+    bool found = false;
+    for (i = 0; i < EEPROM_SIZE; i+=sizeof(EEPROMData)) {
+        EEPROM.get(i, temp);
+        if ((sensor_type)temp.sensor == sensor && temp.ind == ind) {
+            memcpy(data, &temp, sizeof(temp));
+            found = true;
+            break;
         }
-        i+=6;
     }
     EEPROM.end();
+    return found;
 }

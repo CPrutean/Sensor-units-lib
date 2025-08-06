@@ -36,7 +36,7 @@ implement pulldown for communication units as well as implement
 //Change the address as needed default i2c addresses for backpacks are 0x27
 //#define LCD_I2C_ADDR 0x27
 
-enum sensor_type {TEMP_AND_HUMID = 0, GPS, TIME, NUM_OF_SENSORS};
+enum sensor_type {TEMP_AND_HUMID = 0, GPS, NUM_OF_SENSORS};
 enum sensor_unit_status {ONLINE = 0, ERROR, OFFLINE};
 
 //Initialize these pointers within your .ino file and set them to the address of these individual objects
@@ -76,30 +76,29 @@ typedef struct _sensor_unit {
     msg_queue queue();
 } sensor_unit;
 
-/*
--Communication units will be able to communicate with sensor units and send them messages as well as serve as a web endpoint for other
-devices and communicate with web devices
+typedef struct sensor_definition {
+    char** commands;
+    char** responses;
+    sensor_type sensor;
+} sensor_definition;
 
--Communication devices will be able to pull data from sensor units and communicate the information to the requesting endpoint
-
-
-*/
 typedef struct _communication_unit {
     char* commands[6][16]; 
     uint8_t SU_ADDR[6][6];
     char* SSID;
     char* PSWD;
     esp_now_peer_info_t SU_PEER_INF[6];
-    enum sensor_unit_status status[6];
-    enum sensor_type SU_AVLBL_MODULES[6][3];
+    sensor_unit_status status[6];
+    sensor_type SU_AVLBL_MODULES[6][3];
+    msg_queue queue();
 } communication_unit;
  
 
 
 typedef struct def_message_struct {
     char message[MAX_MSG_LENGTH];
-    float values[2];
-    uint8_t senderAddr[6];
+    float values[4];
+    uint8_t channel;
 } def_message_struct;
 
 

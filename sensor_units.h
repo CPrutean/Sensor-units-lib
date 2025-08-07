@@ -10,20 +10,8 @@
 #include <WiFi.h>
 #include <EEPROM.h>
 #include <LCD_I2C.h>
+#include <bits/stdc++.h>
 
-/* TODO
-implement error handling and fallbacks for faulty method calls and faulty information handling
-
-implement communication unity data storage protocols and command handling
-
-raspberry pi-esp32 communication
-
-implement reading storage to collect and store a number of readings that will be stored and can be relayed back to the main 
-cluster unit
-
-implement pulldown for communication units as well as implement 
-
-*/
 #define GPS_BAUD 9600
 #define MAX_MSG_LENGTH 48
 #define MAX_CMD_LENGTH 16  
@@ -31,6 +19,7 @@ implement pulldown for communication units as well as implement
 #define EEPROM_SIZE 512
 #define MAX_READINGS 80
 #define MAX_QUEUE_LEN 25
+#define NULL_VALUE 0xff
 
 //UN COMMENT THIS WHEN INITIALIZING THE LCD_I2C OBJECT
 //Change the address as needed default i2c addresses for backpacks are 0x27
@@ -67,7 +56,7 @@ sensor types are declared within their localized struct
 
 //Pointers to validly initialized objects if 
 typedef struct _sensor_unit {
-    enum sensor_type modules[3];
+    sensor_type modules[3];
     DHT *dht_sensor;
     HardwareSerial *gpsSerial;
     TinyGPSPlus *gps;
@@ -99,6 +88,7 @@ typedef struct def_message_struct {
     char message[MAX_MSG_LENGTH];
     float values[4];
     uint8_t channel;
+    uint8_t urgency;
 } def_message_struct;
 
 
@@ -119,9 +109,9 @@ int init_CU(communication_unit *CU);
 int init_SU_ESPNOW(sensor_unit *SU, int channel);
 
 
-int handleRequestCU(def_message_struct msgRecv, const uint8_t *adr);
+int handleMSG_CU(def_message_struct msgRecv, int channel);
 int handleRequestSU(char* cmd_passed, def_message_struct *response);
-
+void readAll(sensor_unit *SU);
 int sendMessage(uint8_t brdcstAddr[6], uint8_t* msg, int len);
 void def_onDataRecv(const u_int8_t* adr, const u_int8_t* data, int len);
 void def_onDataSent(const u_int8_t *addr, esp_now_send_status_t status);

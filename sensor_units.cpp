@@ -14,22 +14,22 @@ sensor_definition sensors[NUM_OF_SENSORS+1] = {
     {gps_sensor_cmds, gps_sensor_responses, GPS},
     {sens_unit_msgs, sens_unit_response, NUM_OF_SENSORS}
 };
-int handleSURequest(char* cmd_passed, def_message_struct *response) {
+void handleSURequest(char* cmd_passed, def_message_struct *response) {
+    memset(response, 0, sizeof(def_message_struct));
     if (sens_unit_ptr == nullptr) {
         strncpy(response->message, "sens_unit_ptr wasnt initialized", MAX_MSG_LENGTH);
-        return -1;
+        return;
     }
     int i;
     int j = 0;
     
-    def_message_struct msg;
-    memset(&msg, 0, sizeof(msg));
+    memset(response, 0, sizeof(*response));
     bool completed = false;
     for (i = 0; i < NUM_OF_SENSORS; i++) {
         while (sensors[i].commands[j]!=NULL) {
             if (strncmp(sensors[i].commands[j], cmd_passed, MAX_CMD_LENGTH)) {
-                strncpy(msg.message, sensors[i].responses[j], MAX_MSG_LENGTH);
-                handleSensorRequests(sensors[i].sensor, &msg, j);
+                strncpy(response->message, sensors[i].responses[j], MAX_MSG_LENGTH);
+                handleSensorRequests(sensors[i].sensor, response, j);
                 completed = true;
                 break;
             }
@@ -38,9 +38,8 @@ int handleSURequest(char* cmd_passed, def_message_struct *response) {
             break;
         }
     }
-    msg.channel = sens_unit_ptr->CU_PEER_INF.channel;
-
-    return -1;
+    response->channel = sens_unit_ptr->CU_PEER_INF.channel;
+    sendMessage(sens_unit_ptr->CU_ADDR, (uint8_t*)response, sizeof(*response));
 }
 
 
@@ -49,19 +48,21 @@ int handleSURequest(char* cmd_passed, def_message_struct *response) {
 //the first 4 bytes within the data union will contain the bytes for each individual float, while the 5th corresponds to the
 //index of the value sensors command index (EX: if we are pulling temp the value passed to the byte is 0 corresponding to index 0 of temp_sensor_cmds)
 void handleSensorRequests(sensor_type sensor, def_message_struct *msg, int ind) {
+    int i;
+    int valIndex = 0;
     EEPROMData data[4];
     switch (sensor) {
         case TEMP_AND_HUMID:
             if (readFromEEPROM(sensor, ind, &data[0])) {
-                msg->values[0] = data[0].val;
+                msg->values[valIndex++] = data[0].val;
             } else {
                 strncpy(msg->message, "ERR FAILED TO FIND READING", MAX_MSG_LENGTH);
             }
             break;
         case GPS:
             if (readFromEEPROM(sensor, 0, &data[0]) && readFromEEPROM(sensor, 1, &data[1])) {
-                msg->values[0] = data[0].val;
-                msg->values[1] = data[1].val;
+                msg->values[valIndex++] = data[0].val;
+                msg->values[valIndex++] = data[1].val;
             } else {
                 strncpy(msg->message, "ERR FAILED TO FIND READING OR READINGS", MAX_MSG_LENGTH);
             }
@@ -74,19 +75,42 @@ void handleSensorRequests(sensor_type sensor, def_message_struct *msg, int ind) 
             }
             break;        
     }
+    for (i = valIndex; i < 4; i++) {
+        msg->values[i] = NULL_VALUE;
+    }
 }
 
 void determineStatus(def_message_struct *msg) {
-    if (sens_unit_ptr != nullptr) {
-
-    } else {
+    if (sens_unit_ptr == nullptr) {
         strncpy(msg->message, sens_unit_response[0], MAX_MSG_LENGTH);
+        strncat(msg->message, ": sens_unit_ptr was never initialized", MAX_MSG_LENGTH - strlen(msg->message) - 1);
+        msg->values[0] = (float)ERROR;
+        return;
+    }
+
+    msg->values[0] = (float)ONLINE; 
+    strncpy(msg->message, sens_unit_response[0], MAX_MSG_LENGTH); 
+
+    for (int i = 0; sens_unit_ptr->SU_AVLBL_MODULES[i] != NULL_VALUE; i++) { // Assuming NULL_SENSOR_TYPE terminates the array
+        sensor_type current_sensor = sens_unit_ptr->SU_AVLBL_MODULES[i];
         
+        if (current_sensor == TEMP_AND_HUMID && (sens_unit_ptr->dht_sensor == nullptr || isnan(sens_unit_ptr->dht_sensor.readTemperature()))) {
+            msg->values[0] = (float)ERROR;
+            strncat(msg->message, " DHT_FAIL", MAX_MSG_LENGTH - strlen(msg->message) - 1);
+        } 
+        else if (current_sensor == GPS && (sens_unit_ptr->gpsSerial == nullptr || sens_unit_ptr->gps == nullptr || !sens_unit_ptr->gps.available())) {
+            msg->values[0] = (float)ERROR;
+            strncat(msg->message, " GPS_FAIL", MAX_MSG_LENGTH - strlen(msg->message) - 1);
+        }
     }
 }
 
 void returnSensUnits(def_message_struct *msg) {
-
+    strncpy(msg->message, sens_unit_response[1], MAX_MSG_LENGTH);
+    int i = 0; 
+    while (sens_unit_ptr->SU_AVLBL_MODULES[i] != NULL) {
+        msg->values[i] = (float)sens_unit_ptr->SU_AVLBL_MODULES[i];
+    }
 }
 
 void readAll(sensor_unit *SU) {
@@ -145,8 +169,6 @@ void clearEEPROM() {
 
 
 void writeToEEPROM(float readings[MAX_READINGS], sensor_type sensorHash[MAX_READINGS], int numReadings) {
-    clearEEPROM();
-
     if (EEPROM.begin(EEPROM_SIZE)) {
         Serial.println("Succesfully initialized EEPROM");
     } else {
@@ -187,7 +209,6 @@ bool readFromEEPROM(sensor_type sensor, int ind, EEPROMData *data) {
     } else {
         Serial.println("Failed to intialize EEPROM");
     }
-    EEPROMData data;
     EEPROMData temp;
     int i;
     bool found = false;

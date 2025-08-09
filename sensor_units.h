@@ -10,7 +10,7 @@
 #include <WiFi.h>
 #include <EEPROM.h>
 #include <LCD_I2C.h>
-#include <bits/stdc++.h>
+#include <string>
 
 #define GPS_BAUD 9600
 #define MAX_MSG_LENGTH 48
@@ -20,6 +20,24 @@
 #define MAX_READINGS 80
 #define MAX_QUEUE_LEN 25
 #define NULL_VALUE 0xff
+
+
+const char* temp_sensor_cmds[] = {"PULL TEMP", "PULL HUMID", NULL};
+const char* temp_sensor_responses[] = {"TEMP", "HUMIDITY", NULL};
+
+const char* gps_sensor_cmds[] = {"PULL LOCATION",NULL};
+const char* gps_sensor_responses[] = {"LOCATION", NULL};
+
+const char* sens_unit_msgs[] = {"GET STATUS", "RETURN SENS UNITS", "", NULL};
+const char* sens_unit_response[] = {"Status", "Sens_units"};
+
+//TODO to be implemented later when this stuff actually works
+// char* LCD_UNIT_CMDS[] = {"NEW MSG", "CLEAR", NULL};
+// char* lcd_unit_responses[] = {"Message published", "Message failed to publish", "Message cleared", "Message failed to clear"};
+
+const char* sens_unit_strings[] = {"Temp and humidity", "GPS", NULL};
+const char* status_strings[] = {"Online", "Error", "Offline",NULL};
+
 
 //UN COMMENT THIS WHEN INITIALIZING THE LCD_I2C OBJECT
 //Change the address as needed default i2c addresses for backpacks are 0x27
@@ -66,8 +84,8 @@ typedef struct _sensor_unit {
 } sensor_unit;
 
 typedef struct sensor_definition {
-    char** commands;
-    char** responses;
+    const char** commands;
+    const char** responses;
     sensor_type sensor;
 } sensor_definition;
 

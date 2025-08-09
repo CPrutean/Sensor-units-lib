@@ -25,7 +25,7 @@ int init_SU_ESPNOW(sensor_unit *SU, int channel) {
 
 
 
-int init_CU_ESPNOW(sensor_unit *SU_arr, int len, communication_unit *CU, char* ssid, char* pswd) {
+int init_CU_ESPNOW(communication_unit *CU) {
     #ifdef LCD_I2C_ADDR
     LCD.begin(); 
     #endif
@@ -38,6 +38,9 @@ int init_CU_ESPNOW(sensor_unit *SU_arr, int len, communication_unit *CU, char* s
     int len = sizeof(CU->SU_ADDR)/sizeof(CU->SU_ADDR[0]);
     int return_val = 0;
     for (i = 0; i < len; i++) {
+        if (CU->SU_ADDR[i] == NULL) {
+            break;
+        }
         memcpy(&CU->SU_PEER_INF[i].peer_addr,CU->SU_ADDR[i], 6);
         CU->SU_PEER_INF[i].encrypt = true;
         CU->SU_PEER_INF[i].channel = i;
@@ -49,7 +52,13 @@ int init_CU_ESPNOW(sensor_unit *SU_arr, int len, communication_unit *CU, char* s
         }
 
     }
-
+    int j;
+    def_message_struct msg;
+    memset(&msg, 0, sizeof(msg));
+    strncpy(msg.message, "RETURN SENS UNITS", MAX_MSG_LENGTH);
+    for (j = 0; j < i; j++) {
+        sendMessage(CU->SU_ADDR[i], (uint8_t*)&msg, sizeof(msg));
+    }
     return return_val;
 }
 
@@ -75,10 +84,14 @@ void def_onDataRecv(const u_int8_t* adr, const u_int8_t* data, int len) {
     def_message_struct msg;
     memset(&msg, 0, sizeof(msg));
     memcpy(&msg, data, sizeof(msg));
-    handleCallback(msg);
+    if(sens_unit_ptr == nullptr) {
+        com_unit_ptr->msg_queue().add(msg);
+    } else {
+        sens_unit_ptr->msg.queue().add(msg);
+    }
 }
 
 //TODO implement callback function make sure that it is as lightweight as possible to ensure that onDataRecv function doesn't take too long
 void handleCallback(def_message_struct response) {
-
+    
 }

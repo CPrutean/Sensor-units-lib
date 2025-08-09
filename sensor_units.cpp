@@ -53,14 +53,15 @@ void handleSensorRequests(sensor_type sensor, def_message_struct *msg, int ind) 
     EEPROMData data[4];
     switch (sensor) {
         case TEMP_AND_HUMID:
-            if (readFromEEPROM(sensor, ind, &data[0])) {
+            if (readFromEEPROM(sensor, ind, &data[0], msg)) {
                 msg->values[valIndex++] = data[0].val;
+                msg->values[valIndex++] = data[1].val;
             } else {
                 strncpy(msg->message, "ERR FAILED TO FIND READING", MAX_MSG_LENGTH);
             }
             break;
         case GPS:
-            if (readFromEEPROM(sensor, 0, &data[0]) && readFromEEPROM(sensor, 1, &data[1])) {
+            if (readFromEEPROM(sensor, 0, &data[0], msg) && readFromEEPROM(sensor, 1, &data[1], msg)) {
                 msg->values[valIndex++] = data[0].val;
                 msg->values[valIndex++] = data[1].val;
             } else {
@@ -113,15 +114,15 @@ void returnSensUnits(def_message_struct *msg) {
     }
 }
 
-void readAll(sensor_unit *SU) {
+void readAll(sensor_unit *SU, def_message_struct *msg) {
     float readings[MAX_READINGS];
-    enum sensor_type sensorHash[MAX_READINGS];
+    sensor_type sensorHash[MAX_READINGS];
     int readingsInd;
     readTempAndHumid(readings, sensorHash, SU, &readingsInd);
 
     readGPSLatAndLong(readings, sensorHash, SU, &readingsInd);
 
-    writeToEEPROM(readings, sensorHash, readingsInd+1);
+    writeToEEPROM(readings, sensorHash, readingsInd+1, msg);
 }
 
 //
@@ -168,11 +169,9 @@ void clearEEPROM() {
 }
 
 
-void writeToEEPROM(float readings[MAX_READINGS], sensor_type sensorHash[MAX_READINGS], int numReadings) {
-    if (EEPROM.begin(EEPROM_SIZE)) {
-        Serial.println("Succesfully initialized EEPROM");
-    } else {
-        Serial.println("Failed to intialize EEPROM");
+void writeToEEPROM(float readings[MAX_READINGS], sensor_type sensorHash[MAX_READINGS], int numReadings, def_message_struct *msg) {
+    if (!EEPROM.begin(EEPROM_SIZE)) {
+        strncat(msg->message, "ERROR FAILED TO INITIALIZE EEPROM", MAX_MSG_LENGTH);
     }
     int i;
     int hashInd = 0;
@@ -193,21 +192,17 @@ void writeToEEPROM(float readings[MAX_READINGS], sensor_type sensorHash[MAX_READ
         EEPROMInd += EEPROMSize;
     }
     
-    if (EEPROM.commit()) {
-        Serial.print("EEPROM commit was succesful");
-    } else {
-        Serial.print("EEPROM commit was a failure");
+    if (!EEPROM.commit()) {
+        strncat(msg->message, "EEPROM COMMIT WAS A FAILURE ERROR", MAX_MSG_LENGTH);
     }
     EEPROM.end();
 }
 
 
 
-bool readFromEEPROM(sensor_type sensor, int ind, EEPROMData *data) {
-    if (EEPROM.begin(EEPROM_SIZE)) {
-        Serial.println("Succesfully initialized EEPROM");
-    } else {
-        Serial.println("Failed to intialize EEPROM");
+bool readFromEEPROM(sensor_type sensor, int ind, EEPROMData *data, def_message_struct *msg) {
+    if (!EEPROM.begin(EEPROM_SIZE)) {
+        strncat(msg->message, "ERROR FAILED TO INITIALIZE EEPROM", MAX_MSG_LENGTH);
     }
     EEPROMData temp;
     int i;

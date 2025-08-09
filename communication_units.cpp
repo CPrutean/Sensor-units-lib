@@ -2,7 +2,7 @@
 //Py string word seperator
 #define PY_STR_SEPER '|'
 
-const String pyKeywordsArr[][10] = {{"PUSH", "PULL"}, {"TEMP AND HUMID", "GPS", "ALL"}};
+const String pyKeywordsArr[][10] = {{"PULL", "PU"}, {"TEMP AND HUMID", "GPS", "ALL"}};
 const String pySensorCmds[][10] = {{"TEMP", "HUMID", "ALL"}, {"LAT AND LONG", "ALL"}};
 
 sensor_definition sensors[NUM_OF_SENSORS+1] = {
@@ -82,7 +82,7 @@ void respondPiRequest(String str) {
             }
             i++;
         }
-    } else {
+    } else  if (keywordArr[0] == pyKeywordsArr[0][0]) {
         i = 0;
         while (keywordArr[1] != pyKeywordsArr[1][i]) {
             i++;
@@ -106,7 +106,7 @@ void respondPiRequest(String str) {
                     if (com_unit_ptr->SU_AVLBL_MODULES[l][m] == NULL) {
                         break;
                     }
-                    while (sensors[i].commands[k] != NULL || com_unit_ptr->SU_AVLBL_MODULES[l][m] != sensor)  {
+                    while (sensors[i].commands[k] != NULL && com_unit_ptr->SU_AVLBL_MODULES[l][m] != sensor)  {
                         memset(&msg, 0, sizeof(msg));
                         strncpy(msg.message, sensors[i].commands[k], MAX_MSG_LENGTH);
                         sendMessage(com_unit_ptr->SU_ADDR[i], (uint8_t*)&msg, sizeof(msg));

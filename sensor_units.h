@@ -10,15 +10,20 @@
 #include <WiFi.h>
 #include <EEPROM.h>
 #include <LCD_I2C.h>
-#include <string>
+#include <mutex>
+#include <stdexcept>
+#include <algorithm>
+#include <vector>
 
 #define GPS_BAUD 9600
 #define MAX_MSG_LENGTH 48
 #define MAX_CMD_LENGTH 16  
-#define MAX_QUEUE_LEN 20
+
 #define EEPROM_SIZE 512
 #define MAX_READINGS 80
+
 #define MAX_QUEUE_LEN 25
+
 #define NULL_VALUE 0xff
 
 
@@ -31,14 +36,21 @@ const char* gps_sensor_responses[] = {"LOCATION", NULL};
 const char* sens_unit_msgs[] = {"GET STATUS", "RETURN SENS UNITS", "", NULL};
 const char* sens_unit_response[] = {"Status", "Sens_units"};
 
-//TODO to be implemented later when this stuff actually works
-// char* LCD_UNIT_CMDS[] = {"NEW MSG", "CLEAR", NULL};
-// char* lcd_unit_responses[] = {"Message published", "Message failed to publish", "Message cleared", "Message failed to clear"};
-
 const char* sens_unit_strings[] = {"Temp and humidity", "GPS", NULL};
 const char* status_strings[] = {"Online", "Error", "Offline",NULL};
 
 
+typedef struct sensor_definition {
+    const char** commands;
+    const char** responses;
+    sensor_type sensor;
+} sensor_definition;
+
+sensor_definition sensors[NUM_OF_SENSORS+1] = {
+    {temp_sensor_cmds, temp_sensor_responses, TEMP_AND_HUMID},
+    {gps_sensor_cmds, gps_sensor_responses, GPS},
+    {sens_unit_msgs, sens_unit_response, NUM_OF_SENSORS}
+};
 //UN COMMENT THIS WHEN INITIALIZING THE LCD_I2C OBJECT
 //Change the address as needed default i2c addresses for backpacks are 0x27
 //#define LCD_I2C_ADDR 0x27
@@ -83,14 +95,7 @@ typedef struct _sensor_unit {
     msg_queue queue();
 } sensor_unit;
 
-typedef struct sensor_definition {
-    const char** commands;
-    const char** responses;
-    sensor_type sensor;
-} sensor_definition;
-
 typedef struct _communication_unit {
-    char* commands[6][16]; 
     uint8_t SU_ADDR[6][6];
     char* SSID;
     char* PSWD;

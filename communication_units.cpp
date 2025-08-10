@@ -2,8 +2,8 @@
 //Py string word seperator
 #define PY_STR_SEPER '|'
 
-const String pyKeywordsArr[][10] = {{"PULL", "PU"}, {"TEMP AND HUMID", "GPS", "ALL"}};
-const String pySensorCmds[][10] = {{"TEMP", "HUMID", "ALL"}, {"LAT AND LONG", "ALL"}};
+const char* pyKeywordsArr[][10] = {{"PULL", "PU"}, {"TEMP AND HUMID", "GPS", "ALL"}};
+const char* pySensorCmds[][10] = {{"TEMP", "HUMID", "ALL"}, {"LAT AND LONG", "ALL"}};
 
 sensor_definition sensors[NUM_OF_SENSORS+1] = {
     {temp_sensor_cmds, temp_sensor_responses, TEMP_AND_HUMID},
@@ -12,48 +12,50 @@ sensor_definition sensors[NUM_OF_SENSORS+1] = {
 };
 #define PI_SERIAL Serial
 
-
+const int MAXPYSTRINGLEN = 500;
 int handleMSG_CU(def_message_struct msgRecv) {
     if (com_unit_ptr == nullptr) {
         return -1;
     }
     int i = 0;
-    String returnVal{""};
-    returnVal += msgRecv.message;
-    int i = 0;
+    char returnVal[MAXPYSTRINGLEN];
+    strncat(returnVal, msgRecv.message, MAXPYSTRINGLEN);
+
     if (strncmp(msgRecv.message, sens_unit_response[0], MAX_CMD_LENGTH) == 0) {
-        returnVal += PY_STR_SEPER;
-        returnVal += status_strings[(int)msgRecv.values[0]];
+        strncat(returnVal, (char*)PY_STR_SEPER, MAXPYSTRINGLEN);
+        strncat(returnVal, status_strings[(int)msgRecv.values[0]], MAXPYSTRINGLEN);
     } else if (strncmp(msgRecv.message, sens_unit_response[1], MAX_CMD_LENGTH) == 0 && com_unit_ptr!=nullptr) {
         while (msgRecv.values[i]!=NULL_VALUE) {
             com_unit_ptr->SU_AVLBL_MODULES[msgRecv.channel][i] = (sensor_type)msgRecv.values[i++];
         }
     } else {
         while (i < 4 && msgRecv.values[i] != NULL_VALUE) {
-            returnVal += PY_STR_SEPER;
-            returnVal += floatToString(msgRecv.values[i]);
+            strncat(returnVal, (char*)PY_STR_SEPER, MAXPYSTRINGLEN);
+            int len = snprintf(NULL, 0, "%f", msgRecv.values[i]);
+            char* tempStr =(char*)malloc(sizeof(char)*(len+1));
+            snprintf(tempStr, len+1, "%f", msgRecv.values[i]);
+            strncat(returnVal, tempStr, MAXPYSTRINGLEN);
+            free(tempStr);
         }
     }
     stageForReturn(returnVal);
 }
 
-void stageForReturn(String str) {
+inline void stageForReturn(char* str) {
     PI_SERIAL.print(str);
 }
 
 
-void respondPiRequest(String str) {
-    String keywordArr[10];
-    int len = str.length();
+void respondPiRequest(const char* str) {
+    char* keywordArr[10];
+    int len = strlen(str);
     int i = 0;
-    int ind1 = 0;
-    int ind2;
+    int lastInd = 0;
     int keyArrInd = 0;
     for (i = 0; i < len; i++) {
-        if (str[i] == PY_STR_SEPER && i > 0 && i < len-1) {
-            ind2 = i-1;
-            keywordArr[keyArrInd] = str.substring(ind1, ind2);
-            ind1 = i+1;
+        if (str[i] == PY_STR_SEPER && keyArrInd<10) {
+            keywordArr[keyArrInd++] = substring(str, lastInd, (lastInd-i));
+            lastInd = i+1;
         }
     }
     //The first index is always going to determine push or pull in a command
@@ -69,7 +71,7 @@ void respondPiRequest(String str) {
     int j = 0;
     int k = 0;
     def_message_struct msg;
-    if (keywordArr[0] == pyKeywordsArr[0][0] && keywordArr[1] == pyKeywordsArr[1][2]) {
+    if (strncmp(keywordArr[0], pyKeywordsArr[0][0], strlen(pyKeywordsArr[0][0])) == 0 && strncmp(keywordArr[1], pyKeywordsArr[1][2], strlen(pyKeywordsArr[1][2])) == 0) {
         while (com_unit_ptr->SU_AVLBL_MODULES[i] != NULL) {
             while (com_unit_ptr->SU_AVLBL_MODULES[i][j] != NULL) {
                 while (sensors[com_unit_ptr->SU_AVLBL_MODULES[i][j]].commands[k] != NULL) {
@@ -82,13 +84,13 @@ void respondPiRequest(String str) {
             }
             i++;
         }
-    } else  if (keywordArr[0] == pyKeywordsArr[0][0]) {
+    } else if (strncmp(keywordArr[0], pyKeywordsArr[0][0], strlen(pyKeywordsArr[0][0])) == 0) {
         i = 0;
-        while (keywordArr[1] != pyKeywordsArr[1][i]) {
+        while (strncmp(keywordArr[1], pyKeywordsArr[1][i], strlen(pyKeywordsArr[1][i])) != 0) {
             i++;
         }
         j = 0;
-        while (keywordArr[2] != pySensorCmds[i][j]) {
+        while (strncmp(keywordArr[2], pyKeywordsArr[i][j], strlen(pyKeywordsArr[i][j])) != 0) {
             j++;
         }
 
@@ -97,7 +99,7 @@ void respondPiRequest(String str) {
         int l;
         int m;
 
-        if (pySensorCmds[i][j] == "ALL") {
+        if (strncmp(pySensorCmds[i][j], "ALL", strlen("ALL")) == 0) {
             for (l = 0; l < 6; l++) {
                 if (com_unit_ptr->SU_AVLBL_MODULES[l] == NULL) {
                     break;
@@ -106,11 +108,14 @@ void respondPiRequest(String str) {
                     if (com_unit_ptr->SU_AVLBL_MODULES[l][m] == NULL) {
                         break;
                     }
-                    while (sensors[i].commands[k] != NULL && com_unit_ptr->SU_AVLBL_MODULES[l][m] != sensor)  {
-                        memset(&msg, 0, sizeof(msg));
-                        strncpy(msg.message, sensors[i].commands[k], MAX_MSG_LENGTH);
-                        sendMessage(com_unit_ptr->SU_ADDR[i], (uint8_t*)&msg, sizeof(msg));
-                        k++;
+                    if (com_unit_ptr->SU_AVLBL_MODULES[l][m] == sensor) {
+                        while (sensors[i].commands[k] != NULL)  {
+                            memset(&msg, 0, sizeof(msg));
+                            strncpy(msg.message, sensors[i].commands[k], MAX_MSG_LENGTH);
+                            sendMessage(com_unit_ptr->SU_ADDR[l], (uint8_t*)&msg, sizeof(msg));
+                            k++;
+                        }
+                        break;
                     }
                 }
             }
@@ -132,60 +137,27 @@ void respondPiRequest(String str) {
                 }
             }
         }
+    } else { //Assuming these are the push commands
+        
+    }
+    i = 0;
+    while (keywordArr[i] != NULL) {
+        free(keywordArr[i]);
     }
 }
 
 
-String floatToString(float value) {
-    String str{""};
-    if (value<0.0f) {
-        str+="-";
-        value = -value;
-    }
 
-    float decimals = value;
-    int wholeNum = (int)value;
-    decimals-=wholeNum;
-    String wholePart{""};
-    String decimalPart{""};
-    char tempChar;
 
-    if (wholeNum == 0) {
-        wholePart+="0";
-    } else {
-        while (wholeNum > 0) {
-            wholePart+=(char)(wholeNum%10+(int)'0');
-            wholeNum/=10;
-        }
-        int leftInd = 0;
-        int rightInd = wholePart.length()-1;
-        while (leftInd<rightInd) {
-            tempChar = wholePart.charAt(leftInd);
-            wholePart[leftInd] = wholePart[rightInd];
-            wholePart[rightInd] = tempChar;
-            leftInd++;
-            rightInd--;
-        }
+char* substring(const char* source, int start, int len) {
+    char* tempStr = (char*)malloc(sizeof(char)*(len+1));
+    if (tempStr == NULL) {
+        return nullptr;
     }
-
-    if (decimals > 0) {
-        decimalPart+='.';
-        int tempInt;
-        int i;
-        for (i = 0; i < 4; i++) {
-            decimals*=10;
-            int digit = (int)decimals;
-            decimalPart += (char)(digit+(int)'0');
-            decimals-=digit;
-        }
-    } else {
-        decimalPart+=".0";
-    }
-    str+=wholePart;
-    str+=decimalPart;
-    return str;
+    strncpy(tempStr, source+start, len);
+    tempStr[len] = '\0';
+    return tempStr;
 }
-
 
 
 

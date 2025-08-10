@@ -26,13 +26,17 @@ public:
         std::lock_guard<std::mutex> lock(q_mutex);
         msgs.clear();
     }
-    
+
     //removes the message at index 0
     //No index method provided since messages should be handled in first in first out order
     //With urgency taking precedence
     bool pop() {
         std::lock_guard<std::mutex> lock(q_mutex);
-        
+        if (msgs.empty()) {
+            return false;
+        }
+        msgs.erase(msgs.begin());
+        return true;
     }
 
     def_message_struct getFront() const{

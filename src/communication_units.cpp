@@ -27,10 +27,10 @@ int handleMSG_CU(def_message_struct msgRecv) {
         while (i < 4 && msgRecv.values[i] != NULL_VALUE) {
             strncat(returnVal, (char*)PY_STR_SEPER, MAXPYSTRINGLEN);
             int len = snprintf(NULL, 0, "%f", msgRecv.values[i]);
-            char* tempStr =(char*)malloc(sizeof(char)*(len+1));
+            char* tempStr = (char*) std::malloc(sizeof(char)*(len+1));
             snprintf(tempStr, len+1, "%f", msgRecv.values[i]);
             strncat(returnVal, tempStr, MAXPYSTRINGLEN);
-            free(tempStr);
+            std::free(tempStr);
         }
     }
     stageForReturn(returnVal);

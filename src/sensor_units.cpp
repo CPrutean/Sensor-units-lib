@@ -82,7 +82,7 @@ void determineStatus(def_message_struct *msg) {
     for (int i = 0; sens_unit_ptr->modules[i] != NULL_VALUE; i++) { // Assuming NULL_SENSOR_TYPE terminates the array
         sensor_type current_sensor = sens_unit_ptr->modules[i];
         
-        if (current_sensor == TEMP_AND_HUMID && (sens_unit_ptr->dht_sensor == nullptr || isnan(sens_unit_ptr->dht_sensor->readTemperature()))) {
+        if (current_sensor == TEMP_AND_HUMID && (sens_unit_ptr->dht_sensor == nullptr ||sens_unit_ptr->dht_sensor->readTemperature() == NULL)) {
             msg->values[0] = (float)ERROR;
             strncat(msg->message, " DHT_FAIL", MAX_MSG_LENGTH - strlen(msg->message) - 1);
         } 

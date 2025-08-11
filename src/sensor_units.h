@@ -1,5 +1,4 @@
 #pragma once
-
 #include <arduino.h>
 #include <string.h>
 #include <DHT.h>
@@ -10,10 +9,7 @@
 #include <WiFi.h>
 #include <EEPROM.h>
 #include <LCD_I2C.h>
-#include <mutex>
-#include <stdexcept>
-#include <algorithm>
-#include <vector>
+#include <cstdlib>
 
 #define GPS_BAUD 9600
 #define MAX_MSG_LENGTH 48
@@ -102,8 +98,9 @@ class msg_queue {
         size_t getSize() const;
         bool isEmpty() const;
     private:
-        std::vector<def_message_struct> msgs;
-        mutable std::mutex q_mutex;
+        def_message_struct msgs[MAX_QUEUE_LEN];
+        size_t sizeOfArray;
+        SemaphoreHandle_t queue_mutex;
 };
 
 //UN COMMENT THIS WHEN INITIALIZING THE LCD_I2C OBJECT

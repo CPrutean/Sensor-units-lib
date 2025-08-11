@@ -42,20 +42,6 @@ const char* status_strings[] = {"Online", "Error", "Offline",NULL};
 enum sensor_type {TEMP_AND_HUMID = 0, GPS, NUM_OF_SENSORS};
 enum sensor_unit_status {ONLINE = 0, ERROR, OFFLINE};
 
-class msg_queue {
-    public:
-        msg_queue();
-        bool add(const def_message_struct msg);
-        bool clear();
-        bool pop();
-        def_message_struct getFront() const;
-        size_t getSize() const;
-        bool isEmpty() const;
-    private:
-        std::vector<def_message_struct> msgs;
-        mutable std::mutex q_mutex;
-};
-
 typedef struct sensor_definition {
     const char** commands;
     const char** responses;
@@ -106,6 +92,19 @@ typedef struct EEPROMData {
     uint8_t ind;
 } EEPROMData;
 
+class msg_queue {
+    public:
+        msg_queue();
+        bool add(const def_message_struct msg);
+        bool clear();
+        bool pop();
+        def_message_struct getFront() const;
+        size_t getSize() const;
+        bool isEmpty() const;
+    private:
+        std::vector<def_message_struct> msgs;
+        mutable std::mutex q_mutex;
+};
 
 //UN COMMENT THIS WHEN INITIALIZING THE LCD_I2C OBJECT
 //Change the address as needed default i2c addresses for backpacks are 0x27

@@ -85,13 +85,8 @@ void def_onDataRecv(const u_int8_t* adr, const u_int8_t* data, int len) {
     memset(&msg, 0, sizeof(msg));
     memcpy(&msg, data, sizeof(msg));
     if(sens_unit_ptr == nullptr) {
-        com_unit_ptr->msg_queue().add(msg);
+        com_unit_ptr->queue->add(msg);
     } else {
-        sens_unit_ptr->msg.queue().add(msg);
+        sens_unit_ptr->queue->add(msg);
     }
-}
-
-//TODO implement callback function make sure that it is as lightweight as possible to ensure that onDataRecv function doesn't take too long
-void handleCallback(def_message_struct response) {
-    
 }

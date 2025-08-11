@@ -42,7 +42,19 @@ const char* status_strings[] = {"Online", "Error", "Offline",NULL};
 enum sensor_type {TEMP_AND_HUMID = 0, GPS, NUM_OF_SENSORS};
 enum sensor_unit_status {ONLINE = 0, ERROR, OFFLINE};
 
-class msg_queue;
+class msg_queue {
+    public:
+        msg_queue();
+        bool add(const def_message_struct msg);
+        bool clear();
+        bool pop();
+        def_message_struct getFront() const;
+        size_t getSize() const;
+        bool isEmpty() const;
+    private:
+        std::vector<def_message_struct> msgs;
+        mutable std::mutex q_mutex;
+};
 
 typedef struct sensor_definition {
     const char** commands;
@@ -64,7 +76,7 @@ typedef struct _sensor_unit {
     TinyGPSPlus *gps;
     uint8_t CU_ADDR[6];
     esp_now_peer_info_t CU_PEER_INF;
-    msg_queue queue();
+    msg_queue *queue;
 } sensor_unit;
 
 typedef struct _communication_unit {
@@ -72,7 +84,7 @@ typedef struct _communication_unit {
     esp_now_peer_info_t SU_PEER_INF[6];
     sensor_unit_status status[6];
     sensor_type SU_AVLBL_MODULES[6][3];
-    msg_queue queue();
+    msg_queue *queue;
 } communication_unit;
  
 

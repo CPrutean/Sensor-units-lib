@@ -79,14 +79,14 @@ void determineStatus(def_message_struct *msg) {
     msg->values[0] = (float)ONLINE; 
     strncpy(msg->message, sens_unit_response[0], MAX_MSG_LENGTH); 
 
-    for (int i = 0; sens_unit_ptr->SU_AVLBL_MODULES[i] != NULL_VALUE; i++) { // Assuming NULL_SENSOR_TYPE terminates the array
-        sensor_type current_sensor = sens_unit_ptr->SU_AVLBL_MODULES[i];
+    for (int i = 0; sens_unit_ptr->modules[i] != NULL_VALUE; i++) { // Assuming NULL_SENSOR_TYPE terminates the array
+        sensor_type current_sensor = sens_unit_ptr->modules[i];
         
-        if (current_sensor == TEMP_AND_HUMID && (sens_unit_ptr->dht_sensor == nullptr || isnan(sens_unit_ptr->dht_sensor.readTemperature()))) {
+        if (current_sensor == TEMP_AND_HUMID && (sens_unit_ptr->dht_sensor == nullptr || isnan(sens_unit_ptr->dht_sensor->readTemperature()))) {
             msg->values[0] = (float)ERROR;
             strncat(msg->message, " DHT_FAIL", MAX_MSG_LENGTH - strlen(msg->message) - 1);
         } 
-        else if (current_sensor == GPS && (sens_unit_ptr->gpsSerial == nullptr || sens_unit_ptr->gps == nullptr || !sens_unit_ptr->gps.available())) {
+        else if (current_sensor == GPS && (sens_unit_ptr->gpsSerial == nullptr || sens_unit_ptr->gps == nullptr || !sens_unit_ptr->gpsSerial->available())) {
             msg->values[0] = (float)ERROR;
             strncat(msg->message, " GPS_FAIL", MAX_MSG_LENGTH - strlen(msg->message) - 1);
         }
@@ -96,8 +96,8 @@ void determineStatus(def_message_struct *msg) {
 void returnSensUnits(def_message_struct *msg) {
     strncpy(msg->message, sens_unit_response[1], MAX_MSG_LENGTH);
     int i = 0; 
-    while (sens_unit_ptr->SU_AVLBL_MODULES[i] != NULL) {
-        msg->values[i] = (float)sens_unit_ptr->SU_AVLBL_MODULES[i];
+    while (sens_unit_ptr->modules[i] != NULL) {
+        msg->values[i] = (float)sens_unit_ptr->modules[i];
     }
 }
 

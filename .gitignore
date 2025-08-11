@@ -3,3 +3,5 @@
 .pio/
 .vs/
 *.txt
+CMakeLists.txt
+cmake-build-debug/

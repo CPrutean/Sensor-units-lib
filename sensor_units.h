@@ -42,6 +42,7 @@ const char* status_strings[] = {"Online", "Error", "Offline",NULL};
 enum sensor_type {TEMP_AND_HUMID = 0, GPS, NUM_OF_SENSORS};
 enum sensor_unit_status {ONLINE = 0, ERROR, OFFLINE};
 
+class msg_queue;
 
 typedef struct sensor_definition {
     const char** commands;
@@ -92,7 +93,8 @@ typedef struct EEPROMData {
     uint8_t sensor;
     uint8_t ind;
 } EEPROMData;
-class msg_queue;
+
+
 //UN COMMENT THIS WHEN INITIALIZING THE LCD_I2C OBJECT
 //Change the address as needed default i2c addresses for backpacks are 0x27
 //#define LCD_I2C_ADDR 0x27

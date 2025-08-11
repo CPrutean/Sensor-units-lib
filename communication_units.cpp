@@ -5,11 +5,6 @@
 const char* pyKeywordsArr[][10] = {{"PULL", "PU"}, {"TEMP AND HUMID", "GPS", "ALL"}};
 const char* pySensorCmds[][10] = {{"TEMP", "HUMID", "ALL"}, {"LAT AND LONG", "ALL"}};
 
-sensor_definition sensors[NUM_OF_SENSORS+1] = {
-    {temp_sensor_cmds, temp_sensor_responses, TEMP_AND_HUMID},
-    {gps_sensor_cmds, gps_sensor_responses, GPS},
-    {sens_unit_msgs, sens_unit_response, NUM_OF_SENSORS}
-};
 #define PI_SERIAL Serial
 
 const int MAXPYSTRINGLEN = 500;

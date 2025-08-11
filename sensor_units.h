@@ -39,6 +39,9 @@ const char* sens_unit_response[] = {"Status", "Sens_units"};
 const char* sens_unit_strings[] = {"Temp and humidity", "GPS", NULL};
 const char* status_strings[] = {"Online", "Error", "Offline",NULL};
 
+enum sensor_type {TEMP_AND_HUMID = 0, GPS, NUM_OF_SENSORS};
+enum sensor_unit_status {ONLINE = 0, ERROR, OFFLINE};
+
 
 typedef struct sensor_definition {
     const char** commands;
@@ -51,12 +54,48 @@ sensor_definition sensors[NUM_OF_SENSORS+1] = {
     {gps_sensor_cmds, gps_sensor_responses, GPS},
     {sens_unit_msgs, sens_unit_response, NUM_OF_SENSORS}
 };
+
+//Pointers to validly initialized objects if 
+typedef struct _sensor_unit {
+    sensor_type modules[3];
+    DHT *dht_sensor;
+    HardwareSerial *gpsSerial;
+    TinyGPSPlus *gps;
+    uint8_t CU_ADDR[6];
+    esp_now_peer_info_t CU_PEER_INF;
+    msg_queue queue();
+} sensor_unit;
+
+typedef struct _communication_unit {
+    uint8_t SU_ADDR[6][6];
+    esp_now_peer_info_t SU_PEER_INF[6];
+    sensor_unit_status status[6];
+    sensor_type SU_AVLBL_MODULES[6][3];
+    msg_queue queue();
+} communication_unit;
+ 
+
+
+typedef struct def_message_struct {
+    char message[MAX_MSG_LENGTH];
+    float values[4];
+    uint8_t channel;
+    uint8_t urgency;
+} def_message_struct;
+
+
+//For EEPROM readings we will take a float pass it into EEPROM read and write cycles.
+//The 5th byte represents the index of the command needed to return the temperature and the humidity
+//Example: (If the value of the 5th byte is 0 that means were requesting the temperature as that corresponds to index 0 of the array within the temperature commands)
+typedef struct EEPROMData {
+    float val;
+    uint8_t sensor;
+    uint8_t ind;
+} EEPROMData;
+class msg_queue;
 //UN COMMENT THIS WHEN INITIALIZING THE LCD_I2C OBJECT
 //Change the address as needed default i2c addresses for backpacks are 0x27
 //#define LCD_I2C_ADDR 0x27
-
-enum sensor_type {TEMP_AND_HUMID = 0, GPS, NUM_OF_SENSORS};
-enum sensor_unit_status {ONLINE = 0, ERROR, OFFLINE};
 
 //Initialize these pointers within your .ino file and set them to the address of these individual objects
 sensor_unit *sens_unit_ptr;
@@ -84,46 +123,7 @@ sensor types are declared within their localized struct
 -Simpler sensors like the temperature sensors will be handled within the library
 */
 
-//Pointers to validly initialized objects if 
-typedef struct _sensor_unit {
-    sensor_type modules[3];
-    DHT *dht_sensor;
-    HardwareSerial *gpsSerial;
-    TinyGPSPlus *gps;
-    uint8_t CU_ADDR[6];
-    esp_now_peer_info_t CU_PEER_INF;
-    msg_queue queue();
-} sensor_unit;
 
-typedef struct _communication_unit {
-    uint8_t SU_ADDR[6][6];
-    char* SSID;
-    char* PSWD;
-    esp_now_peer_info_t SU_PEER_INF[6];
-    sensor_unit_status status[6];
-    sensor_type SU_AVLBL_MODULES[6][3];
-    msg_queue queue();
-} communication_unit;
- 
-
-
-typedef struct def_message_struct {
-    char message[MAX_MSG_LENGTH];
-    float values[4];
-    uint8_t channel;
-    uint8_t urgency;
-} def_message_struct;
-
-
-//For EEPROM readings we will take a float pass it into EEPROM read and write cycles.
-//The 5th byte represents the index of the command needed to return the temperature and the humidity
-//Example: (If the value of the 5th byte is 0 that means were requesting the temperature as that corresponds to index 0 of the array within the temperature commands)
-typedef struct EEPROMData {
-    float val;
-    uint8_t sensor;
-    uint8_t ind;
-} EEPROMData;
-class msg_queue;
 
 //Pass in the amount of sensor units you are implementing as well as wifi network your joining and the SSID
 int init_CU(communication_unit *CU);

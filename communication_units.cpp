@@ -141,7 +141,7 @@ void respondPiRequest(const char* str) {
         
     }
     i = 0;
-    while (keywordArr[i] != NULL) {
+    for (i = 0; i < keyArrInd; i++) {
         free(keywordArr[i]);
     }
 }

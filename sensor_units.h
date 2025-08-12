@@ -39,6 +39,22 @@ const char* status_strings[] = {"Online", "Error", "Offline",NULL};
 enum sensor_type {TEMP_AND_HUMID = 0, GPS, NUM_OF_SENSORS};
 enum sensor_unit_status {ONLINE = 0, ERROR, OFFLINE};
 
+typedef struct def_message_struct {
+    char message[MAX_MSG_LENGTH];
+    uint8_t strlen;
+    float values[4];
+    uint8_t channel;
+    uint8_t urgency;
+    uint8_t numValues;
+} def_message_struct;
+
+typedef struct EEPROMData {
+    float val;
+    uint8_t sensor;
+    uint8_t ind;
+} EEPROMData;
+
+
 class msg_queue {
     public:
         msg_queue();
@@ -88,25 +104,6 @@ typedef struct _communication_unit {
 } communication_unit;
  
 
-
-typedef struct def_message_struct {
-    char message[MAX_MSG_LENGTH];
-    uint8_t strlen;
-    float values[4];
-    uint8_t channel;
-    uint8_t urgency;
-    uint8_t numValues;
-} def_message_struct;
-
-
-//For EEPROM readings we will take a float pass it into EEPROM read and write cycles.
-//The 5th byte represents the index of the command needed to return the temperature and the humidity
-//Example: (If the value of the 5th byte is 0 that means were requesting the temperature as that corresponds to index 0 of the array within the temperature commands)
-typedef struct EEPROMData {
-    float val;
-    uint8_t sensor;
-    uint8_t ind;
-} EEPROMData;
 
 //UN COMMENT THIS WHEN INITIALIZING THE LCD_I2C OBJECT
 //Change the address as needed default i2c addresses for backpacks are 0x27

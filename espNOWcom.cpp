@@ -1,5 +1,14 @@
 #include "sensor_units.h"
 
+static inline bool is_zero_mac(const uint8_t mac[6]) {
+    for (int i = 0; i < 6; i++) {
+        if (mac[i] != 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
 //The channel should determined within the individual .ino file for the SU to prevent intercommunication with other SU
 //Each SU should be on its own channel communicating only with CU's
 int init_SU_ESPNOW(sensor_unit *SU, int channel) {
@@ -39,7 +48,7 @@ int init_CU_ESPNOW(communication_unit *CU) {
     int len = sizeof(CU->SU_ADDR)/sizeof(CU->SU_ADDR[0]);
     int return_val = 0;
     for (i = 0; i < len; i++) {
-        if (is_zero_mac(CU->SU_ADDR)) {
+        if (is_zero_mac(*CU->SU_ADDR)) {
             break;
         }
         memcpy(CU->SU_PEER_INF[i].peer_addr,CU->SU_ADDR[i], 6);
@@ -63,14 +72,6 @@ int init_CU_ESPNOW(communication_unit *CU) {
     return return_val;
 }
 
-static inline bool is_zero_mac(const uint8_t mac[6]) {
-    for (int i = 0; i < 6; i++) {
-        if (mac[i] != 0) {
-            return false;
-        }
-    }
-    return true;
-}
 
 
 int sendMessage(uint8_t brdcstAddr[6], uint8_t* msg, int len) {

@@ -24,17 +24,17 @@
 
 
 
-const char* temp_sensor_cmds[] = {"PULL TEMP", "PULL HUMID", NULL};
-const char* temp_sensor_responses[] = {"TEMP", "HUMIDITY", NULL};
+extern char* temp_sensor_cmds[];
+extern char* temp_sensor_responses[];
 
-const char* gps_sensor_cmds[] = {"PULL LOCATION",NULL};
-const char* gps_sensor_responses[] = {"LOCATION", NULL};
+extern char* gps_sensor_cmds[];
+extern char* gps_sensor_responses[];
 
-const char* sens_unit_msgs[] = {"PULL STATUS", "PULL SENS UNITS", "", NULL};
-const char* sens_unit_response[] = {"Status", "Sens_units"};
+extern char* sens_unit_msgs[];
+extern char* sens_unit_response[] = {"Status", "Sens_units"};
 
-const char* sens_unit_strings[] = {"Temp and humidity", "GPS", NULL};
-const char* status_strings[] = {"Online", "Error", "Offline",NULL};
+extern char* sens_unit_strings[];
+extern char* status_strings[];
 
 enum sensor_type {TEMP_AND_HUMID = 0, GPS, NUM_OF_SENSORS};
 enum sensor_unit_status {ONLINE = 0, ERROR, OFFLINE};
@@ -110,8 +110,8 @@ typedef struct _communication_unit {
 //#define LCD_I2C_ADDR 0x27
 
 //Initialize these pointers within your .ino file and set them to the address of these individual objects
-sensor_unit *sens_unit_ptr = nullptr;
-communication_unit *com_unit_ptr = nullptr;
+extern sensor_unit *sens_unit_ptr;
+extern communication_unit *com_unit_ptr;
 
 //Define LCD_I2C_ADDR for error handling and testing and visible erorr handling
 #ifdef LCD_I2C_ADDR

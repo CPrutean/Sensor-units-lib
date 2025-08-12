@@ -145,10 +145,11 @@ int init_SU_ESPNOW(sensor_unit *SU, int channel);
 
 
 int handleMSG_CU(def_message_struct msgRecv, int channel);
-int handleRequestSU(char* cmd_passed, def_message_struct *response);
+void handleRequestSU(char* cmd_passed, def_message_struct *response);
 
 void readAll(sensor_unit *SU);
 void clearEEPROM(); 
 int sendMessage(uint8_t brdcstAddr[6], uint8_t* msg, int len);
 void def_onDataRecv(const u_int8_t* adr, const u_int8_t* data, int len);
 void def_onDataSent(const u_int8_t *addr, esp_now_send_status_t status);
+void respondPiRequest(const char* str);

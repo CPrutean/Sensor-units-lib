@@ -9,6 +9,21 @@ const char* pySensorCmds[][10] = {{"TEMP", "HUMID", "ALL"}, {"LAT AND LONG", "AL
 #define PI_SERIAL Serial
 
 const int MAXPYSTRINGLEN = 1000;
+
+inline void stageForReturn(char* str) {
+    PI_SERIAL.print(str);
+}
+
+char* substring(const char* source, int start, int len) {
+    char* tempStr = (char*)malloc(sizeof(char)*(len+1));
+    if (tempStr == NULL) {
+        return nullptr;
+    }
+    strncpy(tempStr, source+start, len);
+    tempStr[len] = '\0';
+    return tempStr;
+}
+
 int handleMSG_CU(def_message_struct msgRecv, int channel) {
     if (com_unit_ptr == nullptr) {
         return -1;
@@ -39,9 +54,6 @@ int handleMSG_CU(def_message_struct msgRecv, int channel) {
     return 0;
 }
 
-inline void stageForReturn(char* str) {
-    PI_SERIAL.print(str);
-}
 
 
 void respondPiRequest(const char* str) {
@@ -132,7 +144,7 @@ void respondPiRequest(const char* str) {
                     if (com_unit_ptr->SU_AVLBL_MODULES[l][m] == sensor) {
                         memset(&msg, 0, sizeof(msg));
                         msg.message[0] = '\0';
-                        strncpy(msg.message, sensors[i].commands[j], MAX_MSG_LENGTH);
+                        msg.strlen = snprintf(msg.message, MAX_MSG_LENGTH, "%s", sensors[i].commands[j]);
                         sendMessage(com_unit_ptr->SU_ADDR[l], (uint8_t*)&msg, sizeof(msg));
                     }
                 }
@@ -149,16 +161,6 @@ void respondPiRequest(const char* str) {
 
 
 
-
-char* substring(const char* source, int start, int len) {
-    char* tempStr = (char*)malloc(sizeof(char)*(len+1));
-    if (tempStr == NULL) {
-        return nullptr;
-    }
-    strncpy(tempStr, source+start, len);
-    tempStr[len] = '\0';
-    return tempStr;
-}
 
 
 

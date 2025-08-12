@@ -5,17 +5,19 @@ void handleSURequest(char* cmd_passed, def_message_struct *response) {
     memset(response, 0, sizeof(def_message_struct));
     if (sens_unit_ptr == nullptr) {
         strncpy(response->message, "sens_unit_ptr wasnt initialized", MAX_MSG_LENGTH);
+        response->message[strlen(response->message)] = '\0';
         return;
     }
     int i;
     int j = 0;
     
     memset(response, 0, sizeof(*response));
+    response->message[0] = '\0';
     bool completed = false;
     for (i = 0; i < NUM_OF_SENSORS; i++) {
         while (sensors[i].commands[j]!=NULL) {
             if (strncmp(sensors[i].commands[j], cmd_passed, MAX_CMD_LENGTH)) {
-                strncpy(response->message, sensors[i].responses[j], MAX_MSG_LENGTH);
+                response->strlen = snprintf(response->message, MAX_MSG_LENGTH, "%s", sensors[i].commands[j]);
                 handleSensorRequests(sensors[i].sensor, response, j);
                 completed = true;
                 break;
@@ -26,6 +28,10 @@ void handleSURequest(char* cmd_passed, def_message_struct *response) {
         }
     }
     response->channel = sens_unit_ptr->CU_PEER_INF.channel;
+    if (!completed) {
+        memset(response, 0, sizeof(response));
+        response->strlen = snprintf(response->message, MAX_MSG_LENGTH, "%s", "FAILED TO FIND REQUESTED VALUES");
+    }
     sendMessage(sens_unit_ptr->CU_ADDR, (uint8_t*)response, sizeof(*response));
 }
 
@@ -40,19 +46,27 @@ void handleSensorRequests(sensor_type sensor, def_message_struct *msg, int ind) 
     EEPROMData data[4];
     switch (sensor) {
         case TEMP_AND_HUMID:
-            if (readFromEEPROM(sensor, ind, &data[0], msg)) {
-                msg->values[valIndex++] = data[0].val;
-                msg->values[valIndex++] = data[1].val;
+            if (ind == 0 && sens_unit_ptr->dht_sensor != nullptr) {
+                msg->values[0] = sens_unit_ptr->dht_sensor->readTemperature();
+            } else if (ind == 1 && sens_unit_ptr->dht_sensor != nullptr) {
+                msg->values[0] = sens_unit_ptr->dht_sensor->readHumidity();
+            } else if (sens_unit_ptr->dht_sensor == nullptr && readFromEEPROM(sensor, ind, &data[0], msg)) {
+                msg->values[0] = data[0].val;
             } else {
-                strncpy(msg->message, "ERR FAILED TO FIND READING", MAX_MSG_LENGTH);
+                msg->message[0] = '\0';
+                msg->strlen = snprintf(msg->message, MAX_MSG_LENGTH, "%s", "UNABLE TO FIND READING");
             }
             break;
         case GPS:
-            if (readFromEEPROM(sensor, 0, &data[0], msg) && readFromEEPROM(sensor, 1, &data[1], msg)) {
-                msg->values[valIndex++] = data[0].val;
-                msg->values[valIndex++] = data[1].val;
+            if (ind == 0 && sens_unit_ptr->gpsSerial != nullptr && sens_unit_ptr->gps != nullptr) {
+                msg->values[0] = sens_unit_ptr->gps->location.lat();
+                msg->values[1] = sens_unit_ptr->gps->location.lng();
+            } else if (ind == 0 && readFromEEPROM(sensor, ind, &data[0], msg) && readFromEEPROM(sensor, ind, &data[1], msg)) {
+                msg->values[0] = data[0].val;
+                msg->values[1] = data[1].val;
             } else {
-                strncpy(msg->message, "ERR FAILED TO FIND READING OR READINGS", MAX_MSG_LENGTH);
+                msg->message[0] = '\0';
+                msg->strlen = snprintf(msg->message, MAX_MSG_LENGTH, "%s", "UNABLE TO FIND READING");
             }
             break;
         default:
@@ -60,18 +74,18 @@ void handleSensorRequests(sensor_type sensor, def_message_struct *msg, int ind) 
                 determineStatus(msg);
             } else if (ind == 1) {
                 returnSensUnits(msg);
+            } else {
+                msg->message[0] = '\0';
+                msg->strlen = snprintf(msg->message, MAX_MSG_LENGTH, "%s", "INVALID INDEX PASSED");
             }
             break;        
-    }
-    for (i = valIndex; i < 4; i++) {
-        msg->values[i] = NULL_VALUE;
     }
 }
 
 void determineStatus(def_message_struct *msg) {
     if (sens_unit_ptr == nullptr) {
-        strncpy(msg->message, sens_unit_response[0], MAX_MSG_LENGTH);
-        strncat(msg->message, ": sens_unit_ptr was never initialized", MAX_MSG_LENGTH - strlen(msg->message) - 1);
+        msg->strlen = snprintf(msg->message, MAX_MSG_LENGTH, "%s", sens_unit_response[0]);
+        msg->strlen += snprintf(msg->message+msg->strlen, MAX_MSG_LENGTH, "%s", ":sens_unit_ptr was never intialized");
         msg->values[0] = (float)ERROR;
         return;
     }
@@ -79,7 +93,7 @@ void determineStatus(def_message_struct *msg) {
     msg->values[0] = (float)ONLINE; 
     strncpy(msg->message, sens_unit_response[0], MAX_MSG_LENGTH); 
 
-    for (int i = 0; sens_unit_ptr->modules[i] != NULL_VALUE; i++) { // Assuming NULL_SENSOR_TYPE terminates the array
+    for (int i = 0; i < sens_unit_ptr->moduleCount; i++) { // Assuming NULL_SENSOR_TYPE terminates the array
         sensor_type current_sensor = sens_unit_ptr->modules[i];
         
         if (current_sensor == TEMP_AND_HUMID && (sens_unit_ptr->dht_sensor == nullptr ||sens_unit_ptr->dht_sensor->readTemperature() == NULL)) {
@@ -96,7 +110,7 @@ void determineStatus(def_message_struct *msg) {
 void returnSensUnits(def_message_struct *msg) {
     strncpy(msg->message, sens_unit_response[1], MAX_MSG_LENGTH);
     int i = 0; 
-    while (sens_unit_ptr->modules[i] != NULL) {
+    for (i = 0; i < sens_unit_ptr->moduleCount; i++) {
         msg->values[i] = (float)sens_unit_ptr->modules[i];
     }
 }
@@ -158,7 +172,7 @@ void clearEEPROM() {
 
 void writeToEEPROM(float readings[MAX_READINGS], sensor_type sensorHash[MAX_READINGS], int numReadings, def_message_struct *msg) {
     if (!EEPROM.begin(EEPROM_SIZE)) {
-        strncat(msg->message, "ERROR FAILED TO INITIALIZE EEPROM", MAX_MSG_LENGTH);
+        msg->strlen += snprintf(msg->message, MAX_MSG_LENGTH, "%s", "FAILED TO INITIATE EEPROM");
     }
     int i;
     int hashInd = 0;
@@ -180,7 +194,7 @@ void writeToEEPROM(float readings[MAX_READINGS], sensor_type sensorHash[MAX_READ
     }
     
     if (!EEPROM.commit()) {
-        strncat(msg->message, "EEPROM COMMIT WAS A FAILURE ERROR", MAX_MSG_LENGTH);
+        msg->strlen += snprintf(msg->message, MAX_MSG_LENGTH, "%s", "FAILED TO COMMIT TO EEPROM");
     }
     EEPROM.end();
 }
@@ -189,7 +203,7 @@ void writeToEEPROM(float readings[MAX_READINGS], sensor_type sensorHash[MAX_READ
 
 bool readFromEEPROM(sensor_type sensor, int ind, EEPROMData *data, def_message_struct *msg) {
     if (!EEPROM.begin(EEPROM_SIZE)) {
-        strncat(msg->message, "ERROR FAILED TO INITIALIZE EEPROM", MAX_MSG_LENGTH);
+        msg->strlen += snprintf(msg->message, MAX_MSG_LENGTH, "%s", "FAILED TO INITIATE EEPROM");
     }
     EEPROMData temp;
     int i;

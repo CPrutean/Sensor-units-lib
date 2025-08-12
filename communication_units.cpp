@@ -1,39 +1,42 @@
 #include "sensor_units.h"
-//Py string word seperator
-#define PY_STR_SEPER '|'
 
-const char* pyKeywordsArr[][10] = {{"PULL", "PU"}, {"TEMP AND HUMID", "GPS", "ALL"}};
+//Py string word seperator
+char pyStrSeper[] = {'|', '\0'};
+
+const char* pyKeywordsArr[][10] = {{"PULL", "PUSH"}, {"TEMP AND HUMID", "GPS", "ALL"}};
 const char* pySensorCmds[][10] = {{"TEMP", "HUMID", "ALL"}, {"LAT AND LONG", "ALL"}};
 
 #define PI_SERIAL Serial
 
-const int MAXPYSTRINGLEN = 500;
-int handleMSG_CU(def_message_struct msgRecv) {
+const int MAXPYSTRINGLEN = 1000;
+int handleMSG_CU(def_message_struct msgRecv, int channel) {
     if (com_unit_ptr == nullptr) {
         return -1;
     }
     int i = 0;
     char returnVal[MAXPYSTRINGLEN];
-    strncat(returnVal, msgRecv.message, MAXPYSTRINGLEN);
-
+    returnVal[0] = '\0';
+    snprintf(returnVal, sizeof(returnVal), "%s", msgRecv.message);
+    
     if (strncmp(msgRecv.message, sens_unit_response[0], MAX_CMD_LENGTH) == 0) {
-        strncat(returnVal, (char*)PY_STR_SEPER, MAXPYSTRINGLEN);
-        strncat(returnVal, status_strings[(int)msgRecv.values[0]], MAXPYSTRINGLEN);
+        snprintf(returnVal, sizeof(returnVal), "%s", pyStrSeper);
+        snprintf(returnVal, sizeof(returnVal), "%s", status_strings[(int)msgRecv.values[0]]);
     } else if (strncmp(msgRecv.message, sens_unit_response[1], MAX_CMD_LENGTH) == 0 && com_unit_ptr!=nullptr) {
-        while (msgRecv.values[i]!=NULL_VALUE) {
+        for (i = 0; i < msgRecv.numValues; i++) {
             com_unit_ptr->SU_AVLBL_MODULES[msgRecv.channel][i] = (sensor_type)msgRecv.values[i++];
         }
     } else {
-        while (i < 4 && msgRecv.values[i] != NULL_VALUE) {
-            strncat(returnVal, (char*)PY_STR_SEPER, MAXPYSTRINGLEN);
+        for (i = 0; i < msgRecv.numValues; i++) {
+            snprintf(returnVal, MAXPYSTRINGLEN, "%s", pyStrSeper);
             int len = snprintf(NULL, 0, "%f", msgRecv.values[i]);
-            char* tempStr = (char*) std::malloc(sizeof(char)*(len+1));
+            char* tempStr = (char*) malloc(sizeof(char)*(len+1));
             snprintf(tempStr, len+1, "%f", msgRecv.values[i]);
-            strncat(returnVal, tempStr, MAXPYSTRINGLEN);
-            std::free(tempStr);
+            snprintf(returnVal, MAXPYSTRINGLEN, "%s", tempStr);
+            free(tempStr);
         }
     }
     stageForReturn(returnVal);
+    return 0;
 }
 
 inline void stageForReturn(char* str) {
@@ -48,7 +51,7 @@ void respondPiRequest(const char* str) {
     int lastInd = 0;
     int keyArrInd = 0;
     for (i = 0; i < len; i++) {
-        if (str[i] == PY_STR_SEPER && keyArrInd<10) {
+        if (str[i] == pyStrSeper[0] && keyArrInd<10) {
             keywordArr[keyArrInd++] = substring(str, lastInd, (lastInd-i));
             lastInd = i+1;
         }
@@ -71,6 +74,7 @@ void respondPiRequest(const char* str) {
             while (com_unit_ptr->SU_AVLBL_MODULES[i][j] != NULL) {
                 while (sensors[com_unit_ptr->SU_AVLBL_MODULES[i][j]].commands[k] != NULL) {
                     memset(&msg, 0, sizeof(msg));
+                    msg.message[0] = '\0';
                     strncpy(msg.message, sensors[com_unit_ptr->SU_AVLBL_MODULES[i][j]].commands[k], MAX_MSG_LENGTH);
                     sendMessage(com_unit_ptr->SU_ADDR[i], (uint8_t*)&msg, sizeof(msg));
                     k++;
@@ -106,7 +110,8 @@ void respondPiRequest(const char* str) {
                     if (com_unit_ptr->SU_AVLBL_MODULES[l][m] == sensor) {
                         while (sensors[i].commands[k] != NULL)  {
                             memset(&msg, 0, sizeof(msg));
-                            strncpy(msg.message, sensors[i].commands[k], MAX_MSG_LENGTH);
+                            msg.message[0] = '\0';
+                            msg.strlen = snprintf(msg.message, MAX_MSG_LENGTH, "%s", sensors[i].commands[k]);
                             sendMessage(com_unit_ptr->SU_ADDR[l], (uint8_t*)&msg, sizeof(msg));
                             k++;
                         }
@@ -126,6 +131,7 @@ void respondPiRequest(const char* str) {
                     }
                     if (com_unit_ptr->SU_AVLBL_MODULES[l][m] == sensor) {
                         memset(&msg, 0, sizeof(msg));
+                        msg.message[0] = '\0';
                         strncpy(msg.message, sensors[i].commands[j], MAX_MSG_LENGTH);
                         sendMessage(com_unit_ptr->SU_ADDR[l], (uint8_t*)&msg, sizeof(msg));
                     }

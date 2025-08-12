@@ -1,5 +1,5 @@
 #pragma once
-#include <arduino.h>
+#include <Arduino.h>
 #include <string.h>
 #include <DHT.h>
 #include <time.h>
@@ -9,18 +9,19 @@
 #include <WiFi.h>
 #include <EEPROM.h>
 #include <LCD_I2C.h>
+#include <cstdio>
 #include <cstdlib>
 
+
 #define GPS_BAUD 9600
-#define MAX_MSG_LENGTH 48
-#define MAX_CMD_LENGTH 16  
+#define MAX_MSG_LENGTH 100
+#define MAX_CMD_LENGTH 32
 
 #define EEPROM_SIZE 512
 #define MAX_READINGS 80
 
 #define MAX_QUEUE_LEN 25
 
-#define NULL_VALUE 0xff
 
 
 const char* temp_sensor_cmds[] = {"PULL TEMP", "PULL HUMID", NULL};
@@ -29,7 +30,7 @@ const char* temp_sensor_responses[] = {"TEMP", "HUMIDITY", NULL};
 const char* gps_sensor_cmds[] = {"PULL LOCATION",NULL};
 const char* gps_sensor_responses[] = {"LOCATION", NULL};
 
-const char* sens_unit_msgs[] = {"GET STATUS", "RETURN SENS UNITS", "", NULL};
+const char* sens_unit_msgs[] = {"PULL STATUS", "PULL SENS UNITS", "", NULL};
 const char* sens_unit_response[] = {"Status", "Sens_units"};
 
 const char* sens_unit_strings[] = {"Temp and humidity", "GPS", NULL};
@@ -55,6 +56,7 @@ sensor_definition sensors[NUM_OF_SENSORS+1] = {
 //Pointers to validly initialized objects if 
 typedef struct _sensor_unit {
     sensor_type modules[3];
+    uint8_t moduleCount;
     DHT *dht_sensor;
     HardwareSerial *gpsSerial;
     TinyGPSPlus *gps;
@@ -75,9 +77,11 @@ typedef struct _communication_unit {
 
 typedef struct def_message_struct {
     char message[MAX_MSG_LENGTH];
+    uint8_t strlen;
     float values[4];
     uint8_t channel;
     uint8_t urgency;
+    uint8_t numValues;
 } def_message_struct;
 
 
@@ -110,8 +114,8 @@ class msg_queue {
 //#define LCD_I2C_ADDR 0x27
 
 //Initialize these pointers within your .ino file and set them to the address of these individual objects
-sensor_unit *sens_unit_ptr;
-communication_unit *com_unit_ptr;
+sensor_unit *sens_unit_ptr = nullptr;
+communication_unit *com_unit_ptr = nullptr;
 
 //Define LCD_I2C_ADDR for error handling and testing and visible erorr handling
 #ifdef LCD_I2C_ADDR
@@ -138,7 +142,7 @@ sensor types are declared within their localized struct
 
 
 //Pass in the amount of sensor units you are implementing as well as wifi network your joining and the SSID
-int init_CU(communication_unit *CU);
+int init_CU_ESPNOW(communication_unit *CU);
 
 //Intitialize the sensor unit with the values that you passed to it as well as the sensor attached to the unit itself
 int init_SU_ESPNOW(sensor_unit *SU, int channel);

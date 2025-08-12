@@ -39,6 +39,9 @@ extern char* status_strings[];
 enum sensor_type {TEMP_AND_HUMID = 0, GPS, NUM_OF_SENSORS};
 enum sensor_unit_status {ONLINE = 0, ERROR, OFFLINE};
 
+#ifdef __cplusplus
+extern"C" {
+#endif
 typedef struct def_message_struct {
     char message[MAX_MSG_LENGTH];
     uint8_t strlen;
@@ -55,31 +58,12 @@ typedef struct EEPROMData {
 } EEPROMData;
 
 
-class msg_queue {
-    public:
-        msg_queue();
-        bool add(const def_message_struct msg);
-        bool clear();
-        bool pop();
-        def_message_struct getFront() const;
-        size_t getSize() const;
-        bool isEmpty() const;
-    private:
-        def_message_struct msgs[MAX_QUEUE_LEN];
-        size_t sizeOfArray;
-        SemaphoreHandle_t queue_mutex;
-};
-
-
 typedef struct sensor_definition {
     char** commands;
     char** responses;
     sensor_type sensor;
 } sensor_definition;
 
-extern sensor_definition sensors[NUM_OF_SENSORS+1];
-
-//Pointers to validly initialized objects if 
 typedef struct {
     sensor_type modules[3];
     uint8_t moduleCount;
@@ -99,7 +83,26 @@ typedef struct {
     msg_queue *queue;
 } communication_unit;
  
+#ifdef __cplusplus
+}
+#endif
 
+class msg_queue {
+    public:
+        msg_queue();
+        bool add(const def_message_struct msg);
+        bool clear();
+        bool pop();
+        def_message_struct getFront() const;
+        size_t getSize() const;
+        bool isEmpty() const;
+    private:
+        def_message_struct msgs[MAX_QUEUE_LEN];
+        size_t sizeOfArray;
+        SemaphoreHandle_t queue_mutex;
+};
+
+extern sensor_definition sensors[NUM_OF_SENSORS+1];
 
 //UN COMMENT THIS WHEN INITIALIZING THE LCD_I2C OBJECT
 //Change the address as needed default i2c addresses for backpacks are 0x27

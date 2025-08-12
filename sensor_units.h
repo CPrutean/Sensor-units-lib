@@ -80,7 +80,7 @@ typedef struct sensor_definition {
 extern sensor_definition sensors[NUM_OF_SENSORS+1];
 
 //Pointers to validly initialized objects if 
-typedef struct _sensor_unit {
+typedef struct {
     sensor_type modules[3];
     uint8_t moduleCount;
     DHT *dht_sensor;
@@ -91,7 +91,7 @@ typedef struct _sensor_unit {
     msg_queue *queue;
 } sensor_unit;
 
-typedef struct _communication_unit {
+typedef struct {
     uint8_t SU_ADDR[6][6];
     esp_now_peer_info_t SU_PEER_INF[6];
     sensor_unit_status status[6];

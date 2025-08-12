@@ -31,7 +31,7 @@ extern char* gps_sensor_cmds[];
 extern char* gps_sensor_responses[];
 
 extern char* sens_unit_msgs[];
-extern char* sens_unit_response[] = {"Status", "Sens_units"};
+extern char* sens_unit_response[];
 
 extern char* sens_unit_strings[];
 extern char* status_strings[];
@@ -77,11 +77,7 @@ typedef struct sensor_definition {
     sensor_type sensor;
 } sensor_definition;
 
-sensor_definition sensors[NUM_OF_SENSORS+1] = {
-    {temp_sensor_cmds, temp_sensor_responses, TEMP_AND_HUMID},
-    {gps_sensor_cmds, gps_sensor_responses, GPS},
-    {sens_unit_msgs, sens_unit_response, NUM_OF_SENSORS}
-};
+extern sensor_definition sensors[NUM_OF_SENSORS+1];
 
 //Pointers to validly initialized objects if 
 typedef struct _sensor_unit {

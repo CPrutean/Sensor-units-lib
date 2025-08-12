@@ -39,6 +39,20 @@ const char* status_strings[] = {"Online", "Error", "Offline",NULL};
 enum sensor_type {TEMP_AND_HUMID = 0, GPS, NUM_OF_SENSORS};
 enum sensor_unit_status {ONLINE = 0, ERROR, OFFLINE};
 
+class msg_queue {
+    public:
+        msg_queue();
+        bool add(const def_message_struct msg);
+        bool clear();
+        bool pop();
+        def_message_struct getFront() const;
+        size_t getSize() const;
+        bool isEmpty() const;
+    private:
+        def_message_struct msgs[MAX_QUEUE_LEN];
+        size_t sizeOfArray;
+        SemaphoreHandle_t queue_mutex;
+};
 
 
 typedef struct sensor_definition {
@@ -94,21 +108,6 @@ typedef struct EEPROMData {
     uint8_t ind;
 } EEPROMData;
 
-class msg_queue {
-    public:
-        msg_queue();
-        bool add(const def_message_struct msg);
-        bool clear();
-        bool pop();
-        def_message_struct getFront() const;
-        size_t getSize() const;
-        bool isEmpty() const;
-    private:
-        def_message_struct msgs[MAX_QUEUE_LEN];
-        size_t sizeOfArray;
-        SemaphoreHandle_t queue_mutex;
-};
-
 //UN COMMENT THIS WHEN INITIALIZING THE LCD_I2C OBJECT
 //Change the address as needed default i2c addresses for backpacks are 0x27
 //#define LCD_I2C_ADDR 0x27
@@ -150,7 +149,9 @@ int init_SU_ESPNOW(sensor_unit *SU, int channel);
 
 int handleMSG_CU(def_message_struct msgRecv, int channel);
 int handleRequestSU(char* cmd_passed, def_message_struct *response);
+
 void readAll(sensor_unit *SU);
+void clearEEPROM(); 
 int sendMessage(uint8_t brdcstAddr[6], uint8_t* msg, int len);
 void def_onDataRecv(const u_int8_t* adr, const u_int8_t* data, int len);
 void def_onDataSent(const u_int8_t *addr, esp_now_send_status_t status);

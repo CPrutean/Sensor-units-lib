@@ -72,8 +72,8 @@ class msg_queue {
 
 
 typedef struct sensor_definition {
-    const char** commands;
-    const char** responses;
+    char** commands;
+    char** responses;
     sensor_type sensor;
 } sensor_definition;
 

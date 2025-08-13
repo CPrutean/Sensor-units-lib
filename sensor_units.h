@@ -39,9 +39,7 @@ extern char* status_strings[];
 enum sensor_type {TEMP_AND_HUMID = 0, GPS, NUM_OF_SENSORS};
 enum sensor_unit_status {ONLINE = 0, ERROR, OFFLINE};
 
-#ifdef __cplusplus
-extern"C" {
-#endif
+
 typedef struct def_message_struct {
     char message[MAX_MSG_LENGTH];
     uint8_t strlen;
@@ -83,9 +81,6 @@ typedef struct communication_unit{
     msg_queue *queue;
 };
  
-#ifdef __cplusplus
-}
-#endif
 
 class msg_queue {
     public:

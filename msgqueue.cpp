@@ -41,10 +41,12 @@ bool msg_queue::pop() {
 def_message_struct msg_queue::getFront() const {
     def_message_struct out{};
     if (!queue_mutex) return out;
+    if (xSemaphoreTake(queue_mutex, portMAX_DELAY) != pdTRUE) return out;
     // const method: use non-blocking try or const_cast for locking; here we assume best effort
     if (sizeOfArray > 0) {
         out = msgs[0];
     }
+    xSemaphoreGive(queue_mutex);
     return out;
 }
 

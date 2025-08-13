@@ -39,6 +39,21 @@ extern char* status_strings[];
 enum sensor_type {TEMP_AND_HUMID = 0, GPS, NUM_OF_SENSORS};
 enum sensor_unit_status {ONLINE = 0, ERROR, OFFLINE};
 
+class msg_queue {
+    public:
+        msg_queue();
+        bool add(const def_message_struct msg);
+        bool clear();
+        bool pop();
+        def_message_struct getFront() const;
+        size_t getSize() const;
+        bool isEmpty() const;
+    private:
+        def_message_struct msgs[MAX_QUEUE_LEN];
+        size_t sizeOfArray;
+        SemaphoreHandle_t queue_mutex;
+};
+
 
 typedef struct def_message_struct {
     char message[MAX_MSG_LENGTH];
@@ -81,21 +96,6 @@ typedef struct communication_unit{
     msg_queue *queue;
 };
  
-
-class msg_queue {
-    public:
-        msg_queue();
-        bool add(const def_message_struct msg);
-        bool clear();
-        bool pop();
-        def_message_struct getFront() const;
-        size_t getSize() const;
-        bool isEmpty() const;
-    private:
-        def_message_struct msgs[MAX_QUEUE_LEN];
-        size_t sizeOfArray;
-        SemaphoreHandle_t queue_mutex;
-};
 
 extern sensor_definition sensors[NUM_OF_SENSORS+1];
 

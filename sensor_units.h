@@ -1,4 +1,5 @@
 #pragma once
+
 #include <Arduino.h>
 #include <string.h>
 #include <DHT.h>
@@ -12,7 +13,6 @@
 #include <cstdio>
 #include <cstdlib>
 
-
 #define GPS_BAUD 9600
 #define MAX_MSG_LENGTH 100
 #define MAX_CMD_LENGTH 32
@@ -21,8 +21,6 @@
 #define MAX_READINGS 80
 
 #define MAX_QUEUE_LEN 25
-
-
 
 extern char* temp_sensor_cmds[];
 extern char* temp_sensor_responses[];
@@ -78,7 +76,7 @@ typedef struct sensor_definition {
 };
 
 typedef struct sensor_unit{
-    sensor_type modules[3];
+    sensor_type* modules;
     uint8_t moduleCount;
     DHT *dht_sensor;
     HardwareSerial *gpsSerial;

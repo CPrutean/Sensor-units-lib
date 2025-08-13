@@ -64,7 +64,7 @@ typedef struct sensor_definition {
     sensor_type sensor;
 } sensor_definition;
 
-typedef struct {
+typedef struct sensor_unit{
     sensor_type modules[3];
     uint8_t moduleCount;
     DHT *dht_sensor;
@@ -75,7 +75,7 @@ typedef struct {
     msg_queue *queue;
 } sensor_unit;
 
-typedef struct {
+typedef struct communication_unit{
     uint8_t SU_ADDR[6][6];
     esp_now_peer_info_t SU_PEER_INF[6];
     sensor_unit_status status[6];

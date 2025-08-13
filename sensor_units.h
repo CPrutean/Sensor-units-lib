@@ -62,7 +62,7 @@ typedef struct sensor_definition {
     char** commands;
     char** responses;
     sensor_type sensor;
-} sensor_definition;
+};
 
 typedef struct sensor_unit{
     sensor_type modules[3];
@@ -73,7 +73,7 @@ typedef struct sensor_unit{
     uint8_t CU_ADDR[6];
     esp_now_peer_info_t CU_PEER_INF;
     msg_queue *queue;
-} sensor_unit;
+};
 
 typedef struct communication_unit{
     uint8_t SU_ADDR[6][6];
@@ -81,7 +81,7 @@ typedef struct communication_unit{
     sensor_unit_status status[6];
     sensor_type SU_AVLBL_MODULES[6][3];
     msg_queue *queue;
-} communication_unit;
+};
  
 #ifdef __cplusplus
 }

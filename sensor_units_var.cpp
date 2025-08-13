@@ -18,3 +18,7 @@ sensor_definition sensors[NUM_OF_SENSORS+1] = {
     {sens_unit_msgs, sens_unit_response, NUM_OF_SENSORS}
 };
 
+#ifdef LCD_I2C_ADDR
+LCD_I2C LCD(LCD_I2C_ADDR, 16, 2);
+#endif
+

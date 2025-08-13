@@ -107,7 +107,7 @@ extern communication_unit *com_unit_ptr;
 
 //Define LCD_I2C_ADDR for error handling and testing and visible erorr handling
 #ifdef LCD_I2C_ADDR
-LCD_I2C LCD(LCD_I2C_ADDR, 16, 2);
+LCD_I2C LCD;
 #endif
 
 /*

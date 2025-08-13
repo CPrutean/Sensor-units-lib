@@ -142,7 +142,6 @@ void determineStatus(def_message_struct *msg) {
 //For the sake of storing something in EEPROM we are going to be using floats and unions for bytes
 //The data union contains 2 values, one for a float and one for 5 bytes
 //the first 4 bytes within the data union will contain the bytes for each individual float, while the 5th corresponds to the
-//index of the value sensors command index (EX: if we are pulling temp the value passed to the byte is 0 corresponding to index 0 of temp_sensor_cmds)
 void handleSensorRequests(sensor_type sensor, def_message_struct *msg, int ind) {
     int i;
     int valIndex = 0;

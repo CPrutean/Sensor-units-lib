@@ -83,7 +83,7 @@ int sendMessage(uint8_t brdcstAddr[6], uint8_t* msg, int len) {
     }
 }
 
-void def_onDataSent(const u_int8_t *addr, esp_now_send_status_t status) {
+void def_onDataSent(const uint8_t *addr, esp_now_send_status_t status) {
     if (status != ESP_OK) {
         Serial.print("Message failed to send to ");
     } else {
@@ -92,7 +92,7 @@ void def_onDataSent(const u_int8_t *addr, esp_now_send_status_t status) {
     Serial.println(sens_unit_ptr!=nullptr ? "SU":"CU");
 }
 
-void def_onDataRecv(const u_int8_t* adr, const u_int8_t* data, int len) {
+void def_onDataRecv(const uint8_t* adr, const uint8_t* data, int len) {
     def_message_struct msg;
     memset(&msg, 0, sizeof(msg));
     memcpy(&msg, data, sizeof(msg));

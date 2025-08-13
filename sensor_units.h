@@ -95,7 +95,7 @@ typedef struct communication_unit{
 };
  
 
-extern sensor_definition sensors[NUM_OF_SENSORS+1];
+extern sensor_definition sensors[];
 
 //UN COMMENT THIS WHEN INITIALIZING THE LCD_I2C OBJECT
 //Change the address as needed default i2c addresses for backpacks are 0x27

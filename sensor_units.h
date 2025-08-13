@@ -39,6 +39,15 @@ extern char* status_strings[];
 enum sensor_type {TEMP_AND_HUMID = 0, GPS, NUM_OF_SENSORS};
 enum sensor_unit_status {ONLINE = 0, ERROR, OFFLINE};
 
+typedef struct def_message_struct {
+    char message[MAX_MSG_LENGTH];
+    uint8_t strlen;
+    float values[4];
+    uint8_t channel;
+    uint8_t urgency;
+    uint8_t numValues;
+} def_message_struct;
+
 class msg_queue {
     public:
         msg_queue();
@@ -54,15 +63,6 @@ class msg_queue {
         SemaphoreHandle_t queue_mutex;
 };
 
-
-typedef struct def_message_struct {
-    char message[MAX_MSG_LENGTH];
-    uint8_t strlen;
-    float values[4];
-    uint8_t channel;
-    uint8_t urgency;
-    uint8_t numValues;
-} def_message_struct;
 
 typedef struct EEPROMData {
     float val;

@@ -21,6 +21,8 @@
 #define MAX_READINGS 80
 
 #define MAX_QUEUE_LEN 25
+//Needs to be defined in .ino files
+#define PI_SERIAL Serial
 
 extern char* temp_sensor_cmds[];
 extern char* temp_sensor_responses[];
@@ -107,7 +109,7 @@ extern communication_unit *com_unit_ptr;
 
 //Define LCD_I2C_ADDR for error handling and testing and visible erorr handling
 #ifdef LCD_I2C_ADDR
-LCD_I2C LCD;
+extern LCD_I2C LCD;
 #endif
 
 /*

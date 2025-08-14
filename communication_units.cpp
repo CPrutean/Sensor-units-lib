@@ -6,13 +6,15 @@ char pyStrSeper[] = {'|', '\0'};
 const char* pyKeywordsArr[][10] = {{"PULL", "PUSH"}, {"TEMP AND HUMID", "GPS", "ALL"}};
 const char* pySensorCmds[][10] = {{"TEMP", "HUMID", "ALL"}, {"LAT AND LONG", "ALL"}};
 
-#define PI_SERIAL Serial
 
 const int MAXPYSTRINGLEN = 1000;
 
+
+#ifdef PI_SERIAL
 inline void stageForReturn(char* str) {
     PI_SERIAL.print(str);
 }
+#endif
 
 char* substring(const char* source, int start, int len) {
     char* tempStr = (char*)malloc(sizeof(char)*(len+1));
@@ -50,7 +52,11 @@ int handleMSG_CU(def_message_struct msgRecv, int channel) {
             free(tempStr);
         }
     }
+    #ifdef PI_SERIAL
     stageForReturn(returnVal);
+    #else
+    Serial.print("Unable to print to raspberry pi because 'PI_SERIAL' was never defined using '#define' directive");
+    #endif
     return 0;
 }
 

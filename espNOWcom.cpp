@@ -60,7 +60,7 @@ int init_CU_ESPNOW(communication_unit *CU) {
             Serial.println(i);
             return_val = -1;
         }
-
+        CU->numOfSU++;
     }
     int j;
     def_message_struct msg;

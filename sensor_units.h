@@ -21,8 +21,7 @@
 #define MAX_READINGS 80
 
 #define MAX_QUEUE_LEN 25
-//Needs to be defined in .ino files
-#define PI_SERIAL Serial
+//Needs to define PI_SERIAL in .ino files to implement communication by uart
 
 extern char* temp_sensor_cmds[];
 extern char* temp_sensor_responses[];
@@ -93,6 +92,8 @@ typedef struct communication_unit{
     esp_now_peer_info_t SU_PEER_INF[6];
     sensor_unit_status status[6];
     sensor_type SU_AVLBL_MODULES[6][3];
+    uint8_t SU_NUM_MODULES[6];
+    uint8_t numOfSU;
     msg_queue *queue;
 };
  

@@ -3,8 +3,8 @@
 //Py string word seperator
 char pyStrSeper[] = {'|', '\0'};
 
-const char* pyKeywordsArr[][10] = {{"PULL", "PUSH"}, {"TEMP AND HUMID", "GPS", "ALL"}};
-const char* pySensorCmds[][10] = {{"TEMP", "HUMID", "ALL"}, {"LAT AND LONG", "ALL"}};
+const char* pyKeywordsArr[][10] = {{"PULL", "PUSH", NULL}, {"TEMP AND HUMID", "GPS", "ALL", NULL}};
+const char* pySensorCmds[][10] = {{"TEMP", "HUMID", "ALL", NULL}, {"LAT AND LONG", "ALL", NULL}};
 
 
 const int MAXPYSTRINGLEN = 1000;
@@ -41,14 +41,15 @@ int handleMSG_CU(def_message_struct msgRecv, int channel) {
     } else if (strncmp(msgRecv.message, sens_unit_response[1], MAX_CMD_LENGTH) == 0 && com_unit_ptr!=nullptr) {
         for (i = 0; i < msgRecv.numValues; i++) {
             com_unit_ptr->SU_AVLBL_MODULES[msgRecv.channel][i] = (sensor_type)msgRecv.values[i++];
+            com_unit_ptr->SU_NUM_MODULES[msgRecv.channel]++;
         }
     } else {
         for (i = 0; i < msgRecv.numValues; i++) {
-            snprintf(returnVal, MAXPYSTRINGLEN, "%s", pyStrSeper);
+            strncat(returnVal, pyStrSeper, MAXPYSTRINGLEN);
             int len = snprintf(NULL, 0, "%f", msgRecv.values[i]);
             char* tempStr = (char*) malloc(sizeof(char)*(len+1));
             snprintf(tempStr, len+1, "%f", msgRecv.values[i]);
-            snprintf(returnVal, MAXPYSTRINGLEN, "%s", tempStr);
+            strncat(returnVal, tempStr, MAXPYSTRINGLEN);
             free(tempStr);
         }
     }
@@ -70,7 +71,7 @@ void respondPiRequest(const char* str) {
     int keyArrInd = 0;
     for (i = 0; i < len; i++) {
         if (str[i] == pyStrSeper[0] && keyArrInd<10) {
-            keywordArr[keyArrInd++] = substring(str, lastInd, (lastInd-i));
+            keywordArr[keyArrInd++] = substring(str, lastInd, (i-lastInd));
             lastInd = i+1;
         }
     }
@@ -88,8 +89,8 @@ void respondPiRequest(const char* str) {
     int k = 0;
     def_message_struct msg;
     if (strncmp(keywordArr[0], pyKeywordsArr[0][0], strlen(pyKeywordsArr[0][0])) == 0 && strncmp(keywordArr[1], pyKeywordsArr[1][2], strlen(pyKeywordsArr[1][2])) == 0) {
-        while (com_unit_ptr->SU_AVLBL_MODULES[i] != NULL) {
-            while (com_unit_ptr->SU_AVLBL_MODULES[i][j] != NULL) {
+        for (i = 0; i < com_unit_ptr->numOfSU; i++) {
+            for (j = 0; j < com_unit_ptr->SU_NUM_MODULES[i]; j++) {
                 while (sensors[com_unit_ptr->SU_AVLBL_MODULES[i][j]].commands[k] != NULL) {
                     memset(&msg, 0, sizeof(msg));
                     msg.message[0] = '\0';

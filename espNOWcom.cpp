@@ -84,12 +84,14 @@ int sendMessage(uint8_t brdcstAddr[6], uint8_t* msg, int len) {
 }
 
 void def_onDataSent(const uint8_t *addr, esp_now_send_status_t status) {
+    #ifdef DEBUG
     if (status != ESP_OK) {
         Serial.print("Message failed to send to ");
     } else {
         Serial.print("message sent to ");
     }
     Serial.println(sens_unit_ptr!=nullptr ? "SU":"CU");
+    #endif
 }
 
 void def_onDataRecv(const uint8_t* adr, const uint8_t* data, int len) {

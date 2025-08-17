@@ -28,6 +28,9 @@ char* substring(const char* source, int start, int len) {
 
 int handleMSG_CU(def_message_struct msgRecv, int channel) {
     if (com_unit_ptr == nullptr) {
+        #ifdef DEBUG
+        Serial.print("Com_unit_ptr was never initialized");
+        #endif
         return -1;
     }
     int i = 0;
@@ -59,6 +62,9 @@ int handleMSG_CU(def_message_struct msgRecv, int channel) {
 
 
 void respondPiRequest(const char* str) {
+    #ifdef DEBUG
+    Serial.print("MESSAGE RECIEVED");
+    #endif
     char* keywordArr[10];
     int len = strlen(str);
     int i = 0;

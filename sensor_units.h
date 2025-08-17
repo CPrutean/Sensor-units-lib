@@ -60,10 +60,12 @@ class msg_queue {
         def_message_struct getFront() const;
         size_t getSize() const;
         bool isEmpty() const;
+        QueueHandle_t getQueueHandle() const;
     private:
         def_message_struct msgs[MAX_QUEUE_LEN];
         size_t sizeOfArray;
         SemaphoreHandle_t queue_mutex;
+        QueueHandle_t queueHandle;
 };
 
 

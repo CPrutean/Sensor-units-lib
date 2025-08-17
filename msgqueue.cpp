@@ -2,6 +2,7 @@
 
 msg_queue::msg_queue() : sizeOfArray(0) {
     queue_mutex = xSemaphoreCreateMutex();
+    QueueHandle_t queueHandle = xQueueCreate(MAX_QUEUE_LEN, sizeof(def_message_struct)*MAX_QUEUE_LEN);
 }
 
 bool msg_queue::add(const def_message_struct msg) {
@@ -56,4 +57,8 @@ size_t msg_queue::getSize() const {
 
 bool msg_queue::isEmpty() const {
     return sizeOfArray == 0;
+}
+
+QueueHandle_t msg_queue::getQueueHandle() const {
+    return queueHandle;
 }

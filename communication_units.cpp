@@ -76,9 +76,9 @@ void respondPiRequest(const char* str) {
             lastInd = i+1;
         }
     }
-    int keywordArrIndLen[keyArrInd];
+    int keywordArrLen[keyArrInd];
     for (i = 0; i < keyArrInd; i++) {
-        keywordArrIndLen[i] = strlen(keywordArr[i]);
+        keywordArrLen[i] = strlen(keywordArr[i]);
     }
     //The first index is always going to determine push or pull in a command
     //The second specifies what sensor were pulling or pushing to whether thats the temperature sensor or the gps
@@ -93,7 +93,7 @@ void respondPiRequest(const char* str) {
     int j = 0;
     int k = 0;
     def_message_struct msg;
-    if (strncmp(keywordArr[0], pyKeywordsArr[0][0], keywordArrIndLen[0]) == 0 && strncmp(keywordArr[1], pyKeywordsArr[1][2], keywordArrIndLen[1]) == 0) {
+    if (strncmp(keywordArr[0], pyKeywordsArr[0][0], keywordArrLen[0]) == 0 && strncmp(keywordArr[1], pyKeywordsArr[1][2], keywordArrLen[1]) == 0) {
         for (i = 0; i < com_unit_ptr->numOfSU; i++) {
             for (j = 0; j < com_unit_ptr->SU_NUM_MODULES[i]; j++) {
                 while (sensors[com_unit_ptr->SU_AVLBL_MODULES[i][j]].commands[k] != NULL) {
@@ -106,9 +106,9 @@ void respondPiRequest(const char* str) {
                 k = 0;
             }
         }
-    } else if (strncmp(keywordArr[0], pyKeywordsArr[0][0], keywordArrIndLen[0]) == 0) {
+    } else if (strncmp(keywordArr[0], pyKeywordsArr[0][0], keywordArrLen[0]) == 0) {
         i = 0;
-        while (strncmp(keywordArr[1], pyKeywordsArr[1][i], keywordArrIndLen[1]) != 0 && pyKeywordsArr[1][i] != NULL) {
+        while (strncmp(keywordArr[1], pyKeywordsArr[1][i], keywordArrLen[1]) != 0 && pyKeywordsArr[1][i] != NULL) {
             i++;
         }
         if (pyKeywordsArr[1][i] == NULL) {
@@ -116,7 +116,7 @@ void respondPiRequest(const char* str) {
             return;
         }
         j = 0;
-        while (strncmp(keywordArr[2], pyKeywordsArr[i][j], keywordArrIndLen[2]) != 0 && pyKeywordsArr[i][j] != NULL) {
+        while (strncmp(keywordArr[2], pyKeywordsArr[i][j], keywordArrLen[2]) != 0 && pyKeywordsArr[i][j] != NULL) {
             j++;
         }
         if (pyKeywordsArr[i][j] == NULL) {

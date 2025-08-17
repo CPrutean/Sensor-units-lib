@@ -45,9 +45,8 @@ int init_CU_ESPNOW(communication_unit *CU) {
         return -1;
     }
     int i;
-    int len = sizeof(CU->SU_ADDR)/sizeof(CU->SU_ADDR[0]);
     int return_val = 0;
-    for (i = 0; i < len; i++) {
+    for (i = 0; i < CU->numOfSU; i++) {
         if (is_zero_mac(*CU->SU_ADDR)) {
             break;
         }
@@ -99,8 +98,19 @@ void def_onDataRecv(const uint8_t* adr, const uint8_t* data, int len) {
     Serial.print("Message recieved");
     #endif
     def_message_struct msg;
-    memset(&msg, 0, sizeof(msg));
-    memcpy(&msg, data, sizeof(msg));
+    if (len == sizeof(data)) {
+        memcpy(&msg, data, sizeof(msg));
+
+        // 3. Send the message to the queue FROM THE INTERRUPT.
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        xQueueSendFromISR(com_unit_ptr->queue->getQueueHandle(), &msg, &xHigherPriorityTaskWoken);
+
+        // 4. (Optional but good practice) If a higher priority task was waiting for this
+        // message, this line ensures the scheduler runs it immediately.
+        if (xHigherPriorityTaskWoken) {
+            portYIELD_FROM_ISR();
+        }
+    }
     if(sens_unit_ptr == nullptr) {
         com_unit_ptr->queue->add(msg);
     } else {

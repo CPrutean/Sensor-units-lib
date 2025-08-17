@@ -82,7 +82,7 @@ void respondPiRequest(const char* str) {
         }
     }
     if (lastInd < len && keyArrInd < 10) {
-        keywordArr[keyArrInd] = substring(str, lastInd, len - lastInd);
+        substring(str, lastInd, len - lastInd, keywordArr[keyArrInd]);
         if (keywordArr[keyArrInd] != NULL) {
             keywordArrLen[keyArrInd] = strlen(keywordArr[keyArrInd]);
             keyArrInd++;

@@ -101,19 +101,14 @@ void def_onDataRecv(const uint8_t* adr, const uint8_t* data, int len) {
     if (len == sizeof(data)) {
         memcpy(&msg, data, sizeof(msg));
 
-        // 3. Send the message to the queue FROM THE INTERRUPT.
         BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-        xQueueSendFromISR(com_unit_ptr->queue->getQueueHandle(), &msg, &xHigherPriorityTaskWoken);
-
-        // 4. (Optional but good practice) If a higher priority task was waiting for this
-        // message, this line ensures the scheduler runs it immediately.
+        if(sens_unit_ptr == nullptr) {
+            xQueueSendFromISR(com_unit_ptr->queue->getQueueHandle(), &msg, &xHigherPriorityTaskWoken);
+        } else {
+            xQueueSendFromISR(sens_unit_ptr->queue->getQueueHandle(), &msg, &xHigherPriorityTaskWoken);
+        }
         if (xHigherPriorityTaskWoken) {
             portYIELD_FROM_ISR();
         }
-    }
-    if(sens_unit_ptr == nullptr) {
-        com_unit_ptr->queue->add(msg);
-    } else {
-        sens_unit_ptr->queue->add(msg);
     }
 }

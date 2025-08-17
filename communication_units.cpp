@@ -66,20 +66,19 @@ void respondPiRequest(const char* str) {
     Serial.print("MESSAGE RECIEVED");
     #endif
     char* keywordArr[10];
+    int keywordArrLen[10];
     int len = strlen(str);
     int i = 0;
     int lastInd = 0;
     int keyArrInd = 0;
     for (i = 0; i < len; i++) {
         if (str[i] == pyStrSeper[0] && keyArrInd<10) {
-            keywordArr[keyArrInd++] = substring(str, lastInd, (i-lastInd));
+            keywordArr[keyArrInd] = substring(str, lastInd, (i-lastInd));
+            keywordArrLen[keyArrInd++] = strlen(keywordArr[i]);
             lastInd = i+1;
         }
     }
-    int keywordArrLen[keyArrInd];
-    for (i = 0; i < keyArrInd; i++) {
-        keywordArrLen[i] = strlen(keywordArr[i]);
-    }
+    
     //The first index is always going to determine push or pull in a command
     //The second specifies what sensor were pulling or pushing to whether thats the temperature sensor or the gps
 
@@ -108,7 +107,7 @@ void respondPiRequest(const char* str) {
         }
     } else if (strncmp(keywordArr[0], pyKeywordsArr[0][0], keywordArrLen[0]) == 0) {
         i = 0;
-        while (strncmp(keywordArr[1], pyKeywordsArr[1][i], keywordArrLen[1]) != 0 && pyKeywordsArr[1][i] != NULL) {
+        while (strncmp(keywordArr[1], pyKeywordsArr[1][i], keywordArrLen[i]) != 0 && pyKeywordsArr[1][i] != NULL) {
             i++;
         }
         if (pyKeywordsArr[1][i] == NULL) {

@@ -10,6 +10,7 @@
 #include <WiFi.h>
 #include <EEPROM.h>
 #include <LCD_I2C.h>
+#include <cstring>
 #include <cstdio>
 #include <cstdlib>
 
@@ -19,6 +20,7 @@
 
 #define EEPROM_SIZE 512
 #define MAX_READINGS 80
+#define MAX_NAME_LEN 30
 
 #define MAX_QUEUE_LEN 25
 //Needs to define PI_SERIAL in .ino files to implement communication by uart
@@ -45,6 +47,8 @@ typedef struct def_message_struct {
     uint8_t channel;
     uint8_t urgency;
     uint8_t numValues;
+    char name[MAX_NAME_LEN];
+    uint8_t nameLen;
 } def_message_struct;
 
 class msg_queue {
@@ -85,6 +89,7 @@ typedef struct sensor_unit{
     uint8_t CU_ADDR[6];
     esp_now_peer_info_t CU_PEER_INF;
     msg_queue *queue;
+    char* name;
 };
 
 typedef struct communication_unit{
@@ -93,6 +98,7 @@ typedef struct communication_unit{
     sensor_unit_status status[6];
     sensor_type SU_AVLBL_MODULES[6][3];
     uint8_t SU_NUM_MODULES[6];
+    char** names;
     uint8_t numOfSU;
     msg_queue *queue;
 };

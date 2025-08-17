@@ -39,8 +39,8 @@ int handleMSG_CU(def_message_struct msgRecv, int channel) {
     snprintf(returnVal, sizeof(returnVal), "%s", msgRecv.message);
     
     if (strncmp(msgRecv.message, sens_unit_response[0], MAX_CMD_LENGTH) == 0) {
-        snprintf(returnVal, sizeof(returnVal), "%s", pyStrSeper);
-        snprintf(returnVal, sizeof(returnVal), "%s", status_strings[(int)msgRecv.values[0]]);
+        strncat(returnVal, pyStrSeper, sizeof(returnVal) - strlen(returnVal) - 1);
+        strncat(returnVal, status_strings[(int)msgRecv.values[0]], sizeof(returnVal) - strlen(returnVal) - 1);
     } else if (strncmp(msgRecv.message, sens_unit_response[1], MAX_CMD_LENGTH) == 0 && com_unit_ptr!=nullptr) {
         for (i = 0; i < msgRecv.numValues; i++) {
             com_unit_ptr->SU_AVLBL_MODULES[msgRecv.channel][i] = (sensor_type)msgRecv.values[i++];
@@ -73,11 +73,21 @@ void respondPiRequest(const char* str) {
     int keyArrInd = 0;
     for (i = 0; i < len; i++) {
         if (str[i] == pyStrSeper[0] && keyArrInd<10) {
-            keywordArr[keyArrInd] = substring(str, lastInd, (i-lastInd));
-            keywordArrLen[keyArrInd++] = strlen(keywordArr[i]);
+            keywordArr[keyArrInd] = substring(str, lastInd, (i - lastInd));
+            if (keywordArr[keyArrInd] != NULL) { // Always check malloc result
+                keywordArrLen[keyArrInd] = strlen(keywordArr[keyArrInd]);
+                keyArrInd++;
+            }
             lastInd = i+1;
         }
     }
+    if (lastInd < len && keyArrInd < 10) {
+    keywordArr[keyArrInd] = substring(str, lastInd, len - lastInd);
+    if (keywordArr[keyArrInd] != NULL) {
+        keywordArrLen[keyArrInd] = strlen(keywordArr[keyArrInd]);
+        keyArrInd++;
+    }
+}
     
     //The first index is always going to determine push or pull in a command
     //The second specifies what sensor were pulling or pushing to whether thats the temperature sensor or the gps
@@ -107,7 +117,7 @@ void respondPiRequest(const char* str) {
         }
     } else if (strncmp(keywordArr[0], pyKeywordsArr[0][0], keywordArrLen[0]) == 0) {
         i = 0;
-        while (strncmp(keywordArr[1], pyKeywordsArr[1][i], keywordArrLen[i]) != 0 && pyKeywordsArr[1][i] != NULL) {
+        while (strncmp(keywordArr[1], pyKeywordsArr[1][i], keywordArrLen[1]) != 0 && pyKeywordsArr[1][i] != NULL) {
             i++;
         }
         if (pyKeywordsArr[1][i] == NULL) {
@@ -131,7 +141,7 @@ void respondPiRequest(const char* str) {
         if (strncmp(pySensorCmds[i][j], "ALL", 3) == 0) {
             for (l = 0; l < com_unit_ptr->numOfSU; l++) {
                 for (m = 0; m < com_unit_ptr->SU_NUM_MODULES[l]; m++) {
-                    if (com_unit_ptr->SU_AVLBL_MODULES[l][m] == NULL) {
+                    if (com_unit_ptr->SU_AVLBL_MODULES[l][m] == NUM_OF_SENSORS) {
                         break;
                     }
                     if (com_unit_ptr->SU_AVLBL_MODULES[l][m] == sensor) {

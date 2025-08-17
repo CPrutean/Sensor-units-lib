@@ -56,6 +56,7 @@ class msg_queue {
         bool send(const def_message_struct& msg);
         bool receive(def_message_struct& msg);
         QueueHandle_t getQueueHandle() const;
+        msg_queue();
     private:
         QueueHandle_t queueHandle;
 };

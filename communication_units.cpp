@@ -117,7 +117,7 @@ void respondPiRequest(const char* str) {
         }
     } else if (strncmp(keywordArr[0], pyKeywordsArr[0][0], keywordArrLen[0]) == 0) {
         i = 0;
-        while (strncmp(keywordArr[1], pyKeywordsArr[1][i], keywordArrLen[1]) != 0 && pyKeywordsArr[1][i] != NULL) {
+        while (pyKeywordsArr[1][i] != NULL && strncmp(keywordArr[1], pyKeywordsArr[1][i], keywordArrLen[1]) != 0) {
             i++;
         }
         if (pyKeywordsArr[1][i] == NULL) {
@@ -125,7 +125,7 @@ void respondPiRequest(const char* str) {
             return;
         }
         j = 0;
-        while (strncmp(keywordArr[2], pyKeywordsArr[i][j], keywordArrLen[2]) != 0 && pyKeywordsArr[i][j] != NULL) {
+        while (pyKeywordsArr[i][j] != NULL && strncmp(keywordArr[2], pyKeywordsArr[i][j], keywordArrLen[2]) != 0) {
             j++;
         }
         if (pyKeywordsArr[i][j] == NULL) {

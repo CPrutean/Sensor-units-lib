@@ -16,14 +16,14 @@ inline void stageForReturn(char* str) {
 }
 
 
-char* substring(const char* source, int start, int len) {
-    char* tempStr = (char*)malloc(sizeof(char)*(len+1));
-    if (tempStr == NULL) {
-        return nullptr;
+int substring(const char* source, int start, int len, char* dest) {
+    dest = (char*)malloc(sizeof(char)*(len+1));
+    if (dest == NULL) {
+        return -1;
     }
-    strncpy(tempStr, source+start, len);
-    tempStr[len] = '\0';
-    return tempStr;
+    strncpy(dest, source+start, len);
+    dest[len] = '\0';
+    return 0;
 }
 
 int handleMSG_CU(def_message_struct msgRecv, int channel) {
@@ -73,7 +73,7 @@ void respondPiRequest(const char* str) {
     int keyArrInd = 0;
     for (i = 0; i < len; i++) {
         if (str[i] == pyStrSeper[0] && keyArrInd<10) {
-            keywordArr[keyArrInd] = substring(str, lastInd, (i - lastInd));
+            substring(str, lastInd, (i - lastInd), keywordArr[keyArrInd]);
             if (keywordArr[keyArrInd] != NULL) { // Always check malloc result
                 keywordArrLen[keyArrInd] = strlen(keywordArr[keyArrInd]);
                 keyArrInd++;
@@ -82,12 +82,12 @@ void respondPiRequest(const char* str) {
         }
     }
     if (lastInd < len && keyArrInd < 10) {
-    keywordArr[keyArrInd] = substring(str, lastInd, len - lastInd);
-    if (keywordArr[keyArrInd] != NULL) {
-        keywordArrLen[keyArrInd] = strlen(keywordArr[keyArrInd]);
-        keyArrInd++;
+        keywordArr[keyArrInd] = substring(str, lastInd, len - lastInd);
+        if (keywordArr[keyArrInd] != NULL) {
+            keywordArrLen[keyArrInd] = strlen(keywordArr[keyArrInd]);
+            keyArrInd++;
+        }
     }
-}
     
     //The first index is always going to determine push or pull in a command
     //The second specifies what sensor were pulling or pushing to whether thats the temperature sensor or the gps

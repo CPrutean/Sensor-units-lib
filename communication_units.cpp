@@ -4,17 +4,17 @@
 char pyStrSeper[] = {'|', '\0'};
 
 const char* pyKeywordsArr[][10] = {{"PULL", "PUSH", NULL}, {"TEMP AND HUMID", "GPS", "ALL", NULL}};
-const char* pySensorCmds[][10] = {{"TEMP", "HUMID", "ALL", NULL}, {"LAT AND LONG", "ALL", NULL}};
+const char* pySensorCmds[][10] = {{"TEMP", "HUMID", "ALL", NULL}, {"LAT AND LONG", "ALL", NULL}, {"NEW NAME"}};
 
 
 const int MAXPYSTRINGLEN = 1000;
 
 
-#ifdef PI_SERIAL
+
 inline void stageForReturn(char* str) {
-    PI_SERIAL.print(str);
+    Serial.print(str);
 }
-#endif
+
 
 char* substring(const char* source, int start, int len) {
     char* tempStr = (char*)malloc(sizeof(char)*(len+1));
@@ -53,12 +53,7 @@ int handleMSG_CU(def_message_struct msgRecv, int channel) {
             free(tempStr);
         }
     }
-    #ifdef PI_SERIAL
     stageForReturn(returnVal);
-    #else
-    Serial.print("Unable to print to raspberry pi because 'PI_SERIAL' was never defined using '#define' directive");
-    #endif
-    return 0;
 }
 
 
@@ -104,25 +99,30 @@ void respondPiRequest(const char* str) {
         }
     } else if (strncmp(keywordArr[0], pyKeywordsArr[0][0], strlen(pyKeywordsArr[0][0])) == 0) {
         i = 0;
-        while (strncmp(keywordArr[1], pyKeywordsArr[1][i], strlen(pyKeywordsArr[1][i])) != 0) {
+        while (strncmp(keywordArr[1], pyKeywordsArr[1][i], strlen(pyKeywordsArr[1][i])) != 0 && pyKeywordsArr[1][i] != NULL) {
             i++;
         }
+        if (pyKeywordsArr[1][i] == NULL) {
+            Serial.println("pyKeywordsArr was null terminating");
+            return;
+        }
         j = 0;
-        while (strncmp(keywordArr[2], pyKeywordsArr[i][j], strlen(pyKeywordsArr[i][j])) != 0) {
+        while (strncmp(keywordArr[2], pyKeywordsArr[i][j], strlen(pyKeywordsArr[i][j])) != 0 && pyKeywordsArr[i][j] != NULL) {
             j++;
+        }
+        if (pyKeywordsArr[i][j] == NULL) {
+            Serial.println("pyKeywordsArr was null terminating");
+            return;
         }
 
         k = 0;
         sensor_type sensor = (sensor_type)i;
         int l;
         int m;
-
+        
         if (strncmp(pySensorCmds[i][j], "ALL", strlen("ALL")) == 0) {
-            for (l = 0; l < 6; l++) {
-                if (com_unit_ptr->SU_AVLBL_MODULES[l] == NULL) {
-                    break;
-                }
-                for (m = 0; m < 6; m++) {
+            for (l = 0; l < com_unit_ptr->numOfSU; l++) {
+                for (m = 0; m < com_unit_ptr->SU_NUM_MODULES[l]; m++) {
                     if (com_unit_ptr->SU_AVLBL_MODULES[l][m] == NULL) {
                         break;
                     }
@@ -138,16 +138,9 @@ void respondPiRequest(const char* str) {
                     }
                 }
             }
-            
         } else {
-            for (l = 0; l < 6; l++) {
-                if (com_unit_ptr->SU_AVLBL_MODULES[l] == NULL) {
-                    break;
-                }
-                for (m = 0; m < 6; m++) {
-                    if (com_unit_ptr->SU_AVLBL_MODULES[l][m] == NULL) {
-                        break;
-                    }
+            for (l = 0; l < com_unit_ptr->numOfSU; l++) {
+                for (m = 0; m < com_unit_ptr->SU_NUM_MODULES[l]; m++) {
                     if (com_unit_ptr->SU_AVLBL_MODULES[l][m] == sensor) {
                         memset(&msg, 0, sizeof(msg));
                         msg.message[0] = '\0';

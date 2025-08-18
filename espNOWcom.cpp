@@ -9,6 +9,53 @@ static inline bool is_zero_mac(const uint8_t mac[6]) {
     return true;
 }
 
+int sendMessage(uint8_t brdcstAddr[6], uint8_t* msg, int len) {
+    esp_err_t result =  esp_now_send(brdcstAddr, msg, len);
+    if (result != ESP_OK) {
+        return -1;
+    } else {
+        return 0;    
+    }
+}
+
+void def_onDataSent(const uint8_t *addr, esp_now_send_status_t status) {
+    #ifdef DEBUG
+    if (status != ESP_OK) {
+        Serial.print("Message failed to send to ");
+    } else {
+        Serial.print("message sent to ");
+    }
+    Serial.println(sens_unit_ptr!=nullptr ? "SU":"CU");
+    #endif
+}
+
+void def_onDataRecv(const uint8_t* adr, const uint8_t* data, int len) {
+    if (len == sizeof(def_message_struct)) {
+        def_message_struct msg;
+        memcpy(&msg, data, sizeof(msg));
+        
+        #ifdef DEBUG
+        Serial.println("Message received");
+        Serial.println(msg.message);
+        #endif
+
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        if (sens_unit_ptr == nullptr) {
+            xQueueSendFromISR(com_unit_ptr->queue->getQueueHandle(), &msg, &xHigherPriorityTaskWoken);
+        } else {
+            xQueueSendFromISR(sens_unit_ptr->queue->getQueueHandle(), &msg, &xHigherPriorityTaskWoken);
+        }
+        if (xHigherPriorityTaskWoken) {
+            portYIELD_FROM_ISR();
+        }
+    } else {
+        #ifdef DEBUG
+        Serial.printf("Received message of wrong size. Got: %d, Expected: %d\n", len, sizeof(def_message_struct));
+        #endif
+    }
+}
+
+
 //The channel should determined within the individual .ino file for the SU to prevent intercommunication with other SU
 //Each SU should be on its own channel communicating only with CU's
 int init_SU_ESPNOW(sensor_unit *SU, int channel) {
@@ -39,80 +86,52 @@ int init_CU_ESPNOW(communication_unit *CU) {
     #ifdef LCD_I2C_ADDR
     LCD.begin(); 
     #endif
+    // ... (LCD init if needed) ...
     WiFi.mode(WIFI_STA);
+    
     if (esp_now_init() != ESP_OK) {
         Serial.println("Failed to init espNOW");
         return -1;
     }
-    int i;
-    int return_val = 0;
-    for (i = 0; i < CU->numOfSU; i++) {
-        if (is_zero_mac(*CU->SU_ADDR)) {
-            break;
-        }
-        memcpy(CU->SU_PEER_INF[i].peer_addr,CU->SU_ADDR[i], 6);
-        CU->SU_PEER_INF[i].encrypt = false;
-        CU->SU_PEER_INF[i].channel = i;
 
-        if (esp_now_add_peer(&CU->SU_PEER_INF[i])!= ESP_OK) {
+    int return_val = 0;
+    int registered_peers = 0; // Use a local counter
+
+    // FIX 3: Loop up to the maximum number of SUs defined for the CU.
+    for (int i = 0; i < CU->numOfSU; i++) { // Assuming `maxNumOfSU` is the size of the array
+        if (is_zero_mac(CU->SU_ADDR[i])) {
+            break; // Stop if we find an empty MAC address
+        }
+
+        memcpy(CU->SU_PEER_INF[i].peer_addr, CU->SU_ADDR[i], 6);
+        CU->SU_PEER_INF[i].encrypt = false;
+        
+        // FIX 2: All peers must be on the same channel
+        CU->SU_PEER_INF[i].channel = 0; 
+
+        if (esp_now_add_peer(&CU->SU_PEER_INF[i]) != ESP_OK) {
             Serial.print("Failed to add peer: ");
             Serial.println(i);
             return_val = -1;
+        } else {
+            registered_peers++;
         }
-        CU->numOfSU++;
     }
-    int j;
+    
+    // FIX 3: Update the number of active SUs after the loop finishes.
+    CU->numOfSU = registered_peers;
+    
+    // Send initial message to all successfully added peers
     def_message_struct msg;
     memset(&msg, 0, sizeof(msg));
-    msg.message[0] = '\0';
-    strncpy(msg.message, "PULL SENS UNITS", MAX_MSG_LENGTH);
-    for (j = 0; j < i; j++) {
+    strncpy(msg.message, "PULL SENS UNITS", MAX_MSG_LENGTH - 1);
+    
+    for (int j = 0; j < CU->numOfSU; j++) {
         sendMessage(CU->SU_ADDR[j], (uint8_t*)&msg, sizeof(msg));
     }
+    
     esp_now_register_send_cb(def_onDataSent);
-    esp_now_register_recv_cb(esp_now_recv_cb_t(def_onDataRecv));
+    esp_now_register_recv_cb(def_onDataRecv);
+
     return return_val;
-}
-
-
-
-int sendMessage(uint8_t brdcstAddr[6], uint8_t* msg, int len) {
-    esp_err_t result =  esp_now_send(brdcstAddr, msg, len);
-    if (result != ESP_OK) {
-        return -1;
-    } else {
-        return 0;    
-    }
-}
-
-void def_onDataSent(const uint8_t *addr, esp_now_send_status_t status) {
-    #ifdef DEBUG
-    if (status != ESP_OK) {
-        Serial.print("Message failed to send to ");
-    } else {
-        Serial.print("message sent to ");
-    }
-    Serial.println(sens_unit_ptr!=nullptr ? "SU":"CU");
-    #endif
-}
-
-void def_onDataRecv(const uint8_t* adr, const uint8_t* data, int len) {
-    def_message_struct msg;
-    if (len == sizeof(data)) {
-        memcpy(&msg, data, sizeof(msg));
-        #ifdef DEBUG
-        Serial.println("Message recieved");
-        Serial.println(msg.message);
-        #endif
-
-        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-        if(sens_unit_ptr == nullptr) {
-            xQueueSendFromISR(com_unit_ptr->queue->getQueueHandle(), &msg, &xHigherPriorityTaskWoken);
-        } else {
-            xQueueSendFromISR(sens_unit_ptr->queue->getQueueHandle(), &msg, &xHigherPriorityTaskWoken);
-        }
-        if (xHigherPriorityTaskWoken) {
-            portYIELD_FROM_ISR();
-        }
-    }
 }

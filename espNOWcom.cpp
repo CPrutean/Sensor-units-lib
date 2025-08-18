@@ -62,6 +62,7 @@ void onDataRecv(const uint8_t* adr, const uint8_t* data, int len) {
 int init_SU_ESPNOW(sensor_unit *SU, int channel) {
     int return_val = 0;
     WiFi.mode(WIFI_STA);
+    WiFi.begin();
     if (esp_now_init() != ESP_OK) {
         Serial.println("Failed to init espNOW");
         return_val = -1;
@@ -89,7 +90,7 @@ int init_CU_ESPNOW(communication_unit *CU) {
     #endif
     // ... (LCD init if needed) ...
     WiFi.mode(WIFI_STA);
-    
+    WiFi.begin();
     if (esp_now_init() != ESP_OK) {
         Serial.println("Failed to init espNOW");
         return -1;

@@ -64,18 +64,28 @@ int init_SU_ESPNOW(sensor_unit *SU, int channel) {
     WiFi.mode(WIFI_STA);
     WiFi.begin();
     if (esp_now_init() != ESP_OK) {
+        #ifdef DEBUG
         Serial.println("Failed to init espNOW");
+        #endif
         return_val = -1;
+    } else {
+        #ifdef DEBUG
+        Serial.println("Succesfully initialized ESPNOW");
+        #endif
     }
     memcpy(SU->CU_PEER_INF.peer_addr, SU->CU_ADDR, 6);
     SU->CU_PEER_INF.encrypt = false;
     SU->CU_PEER_INF.channel = channel;
 
     if (esp_now_add_peer(&SU->CU_PEER_INF)!= ESP_OK) {
+        #ifdef DEBUG
         Serial.println("Failed to add peer");
+        #endif
         return_val = -1;
     }
-
+    #ifdef DEBUG
+    Serial.println("Registered callbacks");
+    #endif
     esp_now_register_send_cb(onDataSent);
     esp_now_register_recv_cb(esp_now_recv_cb_t(onDataRecv));
 
@@ -92,7 +102,9 @@ int init_CU_ESPNOW(communication_unit *CU) {
     WiFi.mode(WIFI_STA);
     WiFi.begin();
     if (esp_now_init() != ESP_OK) {
+        #ifdef DEBUG
         Serial.println("Failed to init espNOW");
+        #endif
         return -1;
     }
 
@@ -110,8 +122,10 @@ int init_CU_ESPNOW(communication_unit *CU) {
         CU->SU_PEER_INF[i].channel = 0; 
 
         if (esp_now_add_peer(&CU->SU_PEER_INF[i]) != ESP_OK) {
+            #ifdef DEBUG
             Serial.print("Failed to add peer: ");
             Serial.println(i);
+            #endif
             return_val = -1;
         } else {
             registered_peers++;
@@ -119,7 +133,9 @@ int init_CU_ESPNOW(communication_unit *CU) {
     }
     
     CU->numOfSU = registered_peers;
-    
+    #ifdef DEBUG
+    Serial.println("Registered callbacks");
+    #endif    
     // Send initial message to all successfully added peers
     esp_now_register_send_cb(onDataSent);
     esp_now_register_recv_cb(esp_now_recv_cb_t(onDataRecv));
@@ -132,7 +148,7 @@ void initCU(communication_unit *CU) {
     def_message_struct msg;
     memset(&msg, 0, sizeof(msg));
     strncpy(msg.message, "PULL SENS UNITS", MAX_MSG_LENGTH - 1);
-    
+        
     for (int j = 0; j < CU->numOfSU; j++) {
         sendMessage(CU->SU_ADDR[j], (uint8_t*)&msg, sizeof(msg));
     }

@@ -134,12 +134,7 @@ sensor types are declared within their localized struct
 
 
 
-//Pass in the amount of sensor units you are implementing as well as wifi network your joining and the SSID
-int init_CU_ESPNOW(communication_unit *CU);
 void initCU(communication_unit *CU);
-
-//Intitialize the sensor unit with the values that you passed to it as well as the sensor attached to the unit itself
-int init_SU_ESPNOW(sensor_unit *SU);
 
 
 int handleMSG_CU(def_message_struct msgRecv, int SUInd);
@@ -148,6 +143,4 @@ void handleRequestSU(char* cmd_passed, def_message_struct *response);
 void readAll(sensor_unit *SU);
 void clearEEPROM(); 
 int sendMessage(uint8_t brdcstAddr[6], uint8_t* msg, int len);
-void onDataRecv(const uint8_t* adr, const u_int8_t* data, int len);
-void onDataSent(const uint8_t *addr, esp_now_send_status_t status);
 void respondPiRequest(const char* str);

@@ -122,6 +122,14 @@ int init_CU_ESPNOW(communication_unit *CU) {
     CU->numOfSU = registered_peers;
     
     // Send initial message to all successfully added peers
+    esp_now_register_send_cb(def_onDataSent);
+    esp_now_register_recv_cb(esp_now_recv_cb_t(def_onDataRecv));
+
+    return return_val;
+}
+
+
+void initCU(communication_unit *CU) {
     def_message_struct msg;
     memset(&msg, 0, sizeof(msg));
     strncpy(msg.message, "PULL SENS UNITS", MAX_MSG_LENGTH - 1);
@@ -129,9 +137,5 @@ int init_CU_ESPNOW(communication_unit *CU) {
     for (int j = 0; j < CU->numOfSU; j++) {
         sendMessage(CU->SU_ADDR[j], (uint8_t*)&msg, sizeof(msg));
     }
-    
-    esp_now_register_send_cb(def_onDataSent);
-    esp_now_register_recv_cb(def_onDataRecv);
-
-    return return_val;
 }
+

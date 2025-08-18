@@ -64,7 +64,8 @@ int init_CU_ESPNOW(communication_unit *CU) {
     int j;
     def_message_struct msg;
     memset(&msg, 0, sizeof(msg));
-    strncpy(msg.message, "RETURN SENS UNITS", MAX_MSG_LENGTH);
+    msg.message[0] = '\0';
+    strncpy(msg.message, "PULL SENS UNITS", MAX_MSG_LENGTH);
     for (j = 0; j < i; j++) {
         sendMessage(CU->SU_ADDR[j], (uint8_t*)&msg, sizeof(msg));
     }
@@ -94,12 +95,13 @@ void def_onDataSent(const uint8_t *addr, esp_now_send_status_t status) {
 }
 
 void def_onDataRecv(const uint8_t* adr, const uint8_t* data, int len) {
-    #ifdef DEBUG
-    Serial.print("Message recieved");
-    #endif
     def_message_struct msg;
     if (len == sizeof(data)) {
         memcpy(&msg, data, sizeof(msg));
+        #ifdef DEBUG
+        Serial.println("Message recieved");
+        Serial.println(msg.message);
+        #endif
 
         BaseType_t xHigherPriorityTaskWoken = pdFALSE;
         if(sens_unit_ptr == nullptr) {

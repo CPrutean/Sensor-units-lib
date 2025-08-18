@@ -50,8 +50,14 @@ int handleMSG_CU(def_message_struct msgRecv, int channel) {
             strncat(returnVal, pyStrSeper, MAXPYSTRINGLEN);
             int len = snprintf(NULL, 0, "%f", msgRecv.values[i]);
             char* tempStr = (char*) malloc(sizeof(char)*(len+1));
-            snprintf(tempStr, len+1, "%f", msgRecv.values[i]);
-            strncat(returnVal, tempStr, MAXPYSTRINGLEN);
+            if (tempStr != NULL) {
+                snprintf(tempStr, len+1, "%f", msgRecv.values[i]);
+                strncat(returnVal, tempStr, MAXPYSTRINGLEN);
+            } else {
+                #ifdef DEBUG
+                Serial.print("Malloc failed when parsing floats");
+                #endif
+            }
             free(tempStr);
         }
     }
@@ -75,7 +81,9 @@ void respondPiRequest(const char* str) {
             substring(str, lastInd, (i - lastInd), keywordArr[keyArrInd], maxKeywordLen);
             if (keywordArr[keyArrInd] != nullptr) { // Always check malloc result
                 keywordArrLen[keyArrInd] = strlen(keywordArr[keyArrInd]);
+                #ifdef DEBUG
                 Serial.println(keywordArr[keyArrInd]);
+                #endif
                 keyArrInd++;
             }
             lastInd = i+1;

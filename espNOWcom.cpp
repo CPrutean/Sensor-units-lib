@@ -18,7 +18,7 @@ int sendMessage(uint8_t brdcstAddr[6], uint8_t* msg, int len) {
     }
 }
 
-void def_onDataSent(const uint8_t *addr, esp_now_send_status_t status) {
+void onDataSent(const uint8_t *addr, esp_now_send_status_t status) {
     #ifdef DEBUG
     if (status != ESP_OK) {
         Serial.print("Message failed to send to ");
@@ -29,7 +29,7 @@ void def_onDataSent(const uint8_t *addr, esp_now_send_status_t status) {
     #endif
 }
 
-void def_onDataRecv(const uint8_t* adr, const uint8_t* data, int len) {
+void onDataRecv(const uint8_t* adr, const uint8_t* data, int len) {
     Serial.println("Message recieved");
     if (len == sizeof(def_message_struct)) {
         def_message_struct msg;
@@ -75,8 +75,8 @@ int init_SU_ESPNOW(sensor_unit *SU, int channel) {
         return_val = -1;
     }
 
-    esp_now_register_send_cb(def_onDataSent);
-    esp_now_register_recv_cb(esp_now_recv_cb_t(def_onDataRecv));
+    esp_now_register_send_cb(onDataSent);
+    esp_now_register_recv_cb(esp_now_recv_cb_t(onDataRecv));
 
     return return_val;
 }
@@ -98,7 +98,6 @@ int init_CU_ESPNOW(communication_unit *CU) {
     int return_val = 0;
     int registered_peers = 0; // Use a local counter
 
-    // FIX 3: Loop up to the maximum number of SUs defined for the CU.
     for (int i = 0; i < CU->numOfSU; i++) { // Assuming `maxNumOfSU` is the size of the array
         if (is_zero_mac(CU->SU_ADDR[i])) {
             break; // Stop if we find an empty MAC address
@@ -107,7 +106,6 @@ int init_CU_ESPNOW(communication_unit *CU) {
         memcpy(CU->SU_PEER_INF[i].peer_addr, CU->SU_ADDR[i], 6);
         CU->SU_PEER_INF[i].encrypt = false;
         
-        // FIX 2: All peers must be on the same channel
         CU->SU_PEER_INF[i].channel = 0; 
 
         if (esp_now_add_peer(&CU->SU_PEER_INF[i]) != ESP_OK) {
@@ -119,12 +117,11 @@ int init_CU_ESPNOW(communication_unit *CU) {
         }
     }
     
-    // FIX 3: Update the number of active SUs after the loop finishes.
     CU->numOfSU = registered_peers;
     
     // Send initial message to all successfully added peers
-    esp_now_register_send_cb(def_onDataSent);
-    esp_now_register_recv_cb(esp_now_recv_cb_t(def_onDataRecv));
+    esp_now_register_send_cb(onDataSent);
+    esp_now_register_recv_cb(esp_now_recv_cb_t(onDataRecv));
 
     return return_val;
 }

@@ -139,7 +139,7 @@ int init_CU_ESPNOW(communication_unit *CU);
 void initCU(communication_unit *CU);
 
 //Intitialize the sensor unit with the values that you passed to it as well as the sensor attached to the unit itself
-int init_SU_ESPNOW(sensor_unit *SU, int channel);
+int init_SU_ESPNOW(sensor_unit *SU);
 
 
 int handleMSG_CU(def_message_struct msgRecv, int channel);

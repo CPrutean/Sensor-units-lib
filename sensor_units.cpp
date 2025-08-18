@@ -159,11 +159,11 @@ void handleSensorRequests(sensor_type sensor, def_message_struct *msg, int ind) 
     EEPROMData data[4];
     switch (sensor) {
         case TEMP_AND_HUMID:
-            if (ind == 0 && sens_unit_ptr->dht_sensor != nullptr) {
+            if (sens_unit_ptr->dht_sensor != nullptr && ind == 0) {
                 msg->values[0] = sens_unit_ptr->dht_sensor->readTemperature();
-            } else if (ind == 1 && sens_unit_ptr->dht_sensor != nullptr) {
+            } else if (sens_unit_ptr->dht_sensor != nullptr && ind == 1) {
                 msg->values[0] = sens_unit_ptr->dht_sensor->readHumidity();
-            } else if (sens_unit_ptr->dht_sensor == nullptr && readFromEEPROM(sensor, ind, &data[0], msg)) {
+            } else if (sens_unit_ptr->dht_sensor != nullptr && readFromEEPROM(sensor, ind, &data[0], msg)) {
                 msg->values[0] = data[0].val;
             } else {
                 msg->message[0] = '\0';
@@ -173,7 +173,7 @@ void handleSensorRequests(sensor_type sensor, def_message_struct *msg, int ind) 
             break;
         case GPS:
             msg->numValues = 2;
-            if (ind == 0 && sens_unit_ptr->gpsSerial != nullptr && sens_unit_ptr->gps != nullptr) {
+            if (sens_unit_ptr->gpsSerial != nullptr && sens_unit_ptr->gps != nullptr && ind == 0) {
                 msg->values[0] = sens_unit_ptr->gps->location.lat();
                 msg->values[1] = sens_unit_ptr->gps->location.lng();
             } else if (ind == 0 && readFromEEPROM(sensor, ind, &data[0], msg) && readFromEEPROM(sensor, ind, &data[1], msg)) {

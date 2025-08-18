@@ -226,7 +226,6 @@ void handleRequestSU(char* cmd_passed, def_message_struct *response) {
             break;
         }
     }
-    response->channel = sens_unit_ptr->CU_PEER_INF.channel;
     if (!completed) {
         memset(response, 0, sizeof(response));
         response->strlen = snprintf(response->message, MAX_MSG_LENGTH, "%s", "FAILED TO FIND REQUESTED VALUES");

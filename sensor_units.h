@@ -84,14 +84,14 @@ typedef struct sensor_unit{
     HardwareSerial *gpsSerial;
     TinyGPSPlus *gps;
     uint8_t CU_ADDR[6];
-    esp_now_peer_info_t *CU_PEER_INF;
+    esp_now_peer_info_t CU_PEER_INF;
     msg_queue *queue;
     char* name;
 };
 
 typedef struct communication_unit{
     uint8_t SU_ADDR[6][6];
-    esp_now_peer_info_t** SU_PEER_INF;
+    esp_now_peer_info_t SU_PEER_INF[6];
     sensor_unit_status status[6];
     sensor_type *SU_AVLBL_MODULES[6];
     uint8_t SU_NUM_MODULES[6];

@@ -30,6 +30,7 @@ void def_onDataSent(const uint8_t *addr, esp_now_send_status_t status) {
 }
 
 void def_onDataRecv(const uint8_t* adr, const uint8_t* data, int len) {
+    Serial.println("Message recieved");
     if (len == sizeof(def_message_struct)) {
         def_message_struct msg;
         memcpy(&msg, data, sizeof(msg));

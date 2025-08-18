@@ -69,6 +69,8 @@ int init_CU_ESPNOW(communication_unit *CU) {
     for (j = 0; j < i; j++) {
         sendMessage(CU->SU_ADDR[j], (uint8_t*)&msg, sizeof(msg));
     }
+    esp_now_register_send_cb(def_onDataSent);
+    esp_now_register_recv_cb(esp_now_recv_cb_t(def_onDataRecv));
     return return_val;
 }
 

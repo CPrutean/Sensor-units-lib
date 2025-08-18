@@ -51,6 +51,7 @@ typedef struct def_message_struct {
     uint8_t numValues;
     char name[MAX_NAME_LEN];
     uint8_t nameLen;
+    uint8_t suInd;
 } def_message_struct;
 
 class msg_queue {

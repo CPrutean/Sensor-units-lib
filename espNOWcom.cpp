@@ -43,6 +43,21 @@ void onDataRecv(const uint8_t* adr, const uint8_t* data, int len) {
 
         BaseType_t xHigherPriorityTaskWoken = pdFALSE;
         if (sens_unit_ptr == nullptr) {
+            int i;
+            int j;
+            bool channelFound = true;
+            for (i = 0; i < com_unit_ptr->numOfSU; i++) {
+                for (j = 0; j = 6; j++) {
+                    if (com_unit_ptr->SU_ADDR[i][j] != adr[j]) {
+                        channelFound = false;
+                        break;
+                    }
+                }
+                if (channelFound) {
+                    msg.suInd = j;
+                    break;
+                }
+            }
             xQueueSendFromISR(com_unit_ptr->queue->getQueueHandle(), &msg, &xHigherPriorityTaskWoken);
         } else {
             xQueueSendFromISR(sens_unit_ptr->queue->getQueueHandle(), &msg, &xHigherPriorityTaskWoken);

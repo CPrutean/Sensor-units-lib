@@ -8,6 +8,7 @@
 #include <TinyGPS++.h>
 #include <esp_now.h>
 #include <WiFi.h>
+#include <esp_wifi.h>
 #include <EEPROM.h>
 #include <LCD_I2C.h>
 #include <cstring>
@@ -46,7 +47,6 @@ typedef struct def_message_struct {
     char message[MAX_MSG_LENGTH];
     uint8_t strlen;
     float values[4];
-    uint8_t channel;
     uint8_t urgency;
     uint8_t numValues;
     char name[MAX_NAME_LEN];
@@ -141,7 +141,7 @@ void initCU(communication_unit *CU);
 int init_SU_ESPNOW(sensor_unit *SU);
 
 
-int handleMSG_CU(def_message_struct msgRecv, int channel);
+int handleMSG_CU(def_message_struct msgRecv, int SUInd);
 void handleRequestSU(char* cmd_passed, def_message_struct *response);
 
 void readAll(sensor_unit *SU);

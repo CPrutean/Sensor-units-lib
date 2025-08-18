@@ -16,9 +16,8 @@ inline void stageForReturn(char* str) {
 }
 
 
-int substring(const char* source, int start, int len, char* dest) {
-    dest = (char*)malloc(sizeof(char)*(len+1));
-    if (dest == NULL) {
+int substring(const char* source, int start, int len, char* dest, int bufferLen) {
+    if (dest == NULL || len > bufferLen) {
         return -1;
     }
     strncpy(dest, source+start, len);
@@ -60,12 +59,12 @@ int handleMSG_CU(def_message_struct msgRecv, int channel) {
 }
 
 
-
+const int maxKeywordLen = 30;
 void respondPiRequest(const char* str) {
     #ifdef DEBUG
     Serial.print("MESSAGE RECIEVED");
     #endif
-    char* keywordArr[10];
+    char keywordArr[10][30];
     int keywordArrLen[10];
     int len = strlen(str);
     int i = 0;
@@ -73,8 +72,8 @@ void respondPiRequest(const char* str) {
     int keyArrInd = 0;
     for (i = 0; i < len; i++) {
         if (str[i] == pyStrSeper[0] && keyArrInd<10) {
-            substring(str, lastInd, (i - lastInd), keywordArr[keyArrInd]);
-            if (keywordArr[keyArrInd] != NULL) { // Always check malloc result
+            substring(str, lastInd, (i - lastInd), keywordArr[keyArrInd], maxKeywordLen);
+            if (keywordArr[keyArrInd] != nullptr) { // Always check malloc result
                 keywordArrLen[keyArrInd] = strlen(keywordArr[keyArrInd]);
                 keyArrInd++;
             }
@@ -82,8 +81,8 @@ void respondPiRequest(const char* str) {
         }
     }
     if (lastInd < len && keyArrInd < 10) {
-        substring(str, lastInd, len - lastInd, keywordArr[keyArrInd]);
-        if (keywordArr[keyArrInd] != NULL) {
+        substring(str, lastInd, len - lastInd, keywordArr[keyArrInd], maxKeywordLen);
+        if (keywordArr[keyArrInd] != nullptr) {
             keywordArrLen[keyArrInd] = strlen(keywordArr[keyArrInd]);
             keyArrInd++;
         }
@@ -172,9 +171,6 @@ void respondPiRequest(const char* str) {
         
     }
     i = 0;
-    for (i = 0; i < keyArrInd; i++) {
-        free(keywordArr[i]);
-    }
 }
 
 

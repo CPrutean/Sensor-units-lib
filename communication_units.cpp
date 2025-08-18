@@ -75,6 +75,7 @@ void respondPiRequest(const char* str) {
             substring(str, lastInd, (i - lastInd), keywordArr[keyArrInd], maxKeywordLen);
             if (keywordArr[keyArrInd] != nullptr) { // Always check malloc result
                 keywordArrLen[keyArrInd] = strlen(keywordArr[keyArrInd]);
+                Serial.println(keywordArr[keyArrInd]);
                 keyArrInd++;
             }
             lastInd = i+1;

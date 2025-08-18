@@ -89,13 +89,14 @@ void respondPiRequest(const char* str) {
             lastInd = i+1;
         }
     }
-    if (lastInd < len && keyArrInd < 10) {
+    if (lastInd <= len && keyArrInd < 10) {
         substring(str, lastInd, len - lastInd, keywordArr[keyArrInd], maxKeywordLen);
         if (keywordArr[keyArrInd] != nullptr) {
             keywordArrLen[keyArrInd] = strlen(keywordArr[keyArrInd]);
             keyArrInd++;
         }
     }
+
     
     //The first index is always going to determine push or pull in a command
     //The second specifies what sensor were pulling or pushing to whether thats the temperature sensor or the gps

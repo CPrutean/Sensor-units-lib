@@ -17,6 +17,7 @@
 #define GPS_BAUD 9600
 #define MAX_MSG_LENGTH 100
 #define MAX_CMD_LENGTH 32
+#define DEBUG 1
 
 #define EEPROM_SIZE 512
 #define MAX_READINGS 80

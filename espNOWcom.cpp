@@ -19,6 +19,7 @@ int sendMessage(uint8_t brdcstAddr[6], uint8_t* msg, int len) {
 }
 
 void onDataSent(const uint8_t *addr, esp_now_send_status_t status) {
+    Serial.println("PACKET SENT");
     #ifdef DEBUG
     if (status != ESP_OK) {
         Serial.print("Message failed to send to ");
@@ -136,7 +137,7 @@ int init_CU_ESPNOW(communication_unit *CU) {
     #ifdef DEBUG
     Serial.println("Registered callbacks");
     #endif    
-    // Send initial message to all successfully added peers
+
     esp_now_register_send_cb(onDataSent);
     esp_now_register_recv_cb(esp_now_recv_cb_t(onDataRecv));
 
@@ -148,7 +149,7 @@ void initCU(communication_unit *CU) {
     def_message_struct msg;
     memset(&msg, 0, sizeof(msg));
     strncpy(msg.message, "PULL SENS UNITS", MAX_MSG_LENGTH - 1);
-        
+
     for (int j = 0; j < CU->numOfSU; j++) {
         sendMessage(CU->SU_ADDR[j], (uint8_t*)&msg, sizeof(msg));
     }

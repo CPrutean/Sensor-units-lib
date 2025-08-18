@@ -18,44 +18,44 @@ int sendMessage(uint8_t brdcstAddr[6], uint8_t* msg, int len) {
     }
 }
 
-void onDataSent(const uint8_t *addr, esp_now_send_status_t status) {
-    Serial.println("PACKET SENT");
-    #ifdef DEBUG
-    if (status != ESP_OK) {
-        Serial.print("Message failed to send to ");
-    } else {
-        Serial.print("message sent to ");
-    }
-    Serial.println(sens_unit_ptr!=nullptr ? "SU":"CU");
-    #endif
-}
+// void onDataSent(const uint8_t *addr, esp_now_send_status_t status) {
+//     Serial.println("PACKET SENT");
+//     #ifdef DEBUG
+//     if (status != ESP_OK) {
+//         Serial.print("Message failed to send to ");
+//     } else {
+//         Serial.print("message sent to ");
+//     }
+//     Serial.println(sens_unit_ptr!=nullptr ? "SU":"CU");
+//     #endif
+// }
 
-void onDataRecv(const uint8_t* adr, const uint8_t* data, int len) {
-    Serial.println("Message recieved");
-    if (len == sizeof(def_message_struct)) {
-        def_message_struct msg;
-        memcpy(&msg, data, sizeof(msg));
+// void onDataRecv(const uint8_t* adr, const uint8_t* data, int len) {
+//     Serial.println("Message recieved");
+//     if (len == sizeof(def_message_struct)) {
+//         def_message_struct msg;
+//         memcpy(&msg, data, sizeof(msg));
         
-        #ifdef DEBUG
-        Serial.println("Message received");
-        Serial.println(msg.message);
-        #endif
+//         #ifdef DEBUG
+//         Serial.println("Message received");
+//         Serial.println(msg.message);
+//         #endif
 
-        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-        if (sens_unit_ptr == nullptr) {
-            xQueueSendFromISR(com_unit_ptr->queue->getQueueHandle(), &msg, &xHigherPriorityTaskWoken);
-        } else {
-            xQueueSendFromISR(sens_unit_ptr->queue->getQueueHandle(), &msg, &xHigherPriorityTaskWoken);
-        }
-        if (xHigherPriorityTaskWoken) {
-            portYIELD_FROM_ISR();
-        }
-    } else {
-        #ifdef DEBUG
-        Serial.printf("Received message of wrong size. Got: %d, Expected: %d\n", len, sizeof(def_message_struct));
-        #endif
-    }
-}
+//         BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+//         if (sens_unit_ptr == nullptr) {
+//             xQueueSendFromISR(com_unit_ptr->queue->getQueueHandle(), &msg, &xHigherPriorityTaskWoken);
+//         } else {
+//             xQueueSendFromISR(sens_unit_ptr->queue->getQueueHandle(), &msg, &xHigherPriorityTaskWoken);
+//         }
+//         if (xHigherPriorityTaskWoken) {
+//             portYIELD_FROM_ISR();
+//         }
+//     } else {
+//         #ifdef DEBUG
+//         Serial.printf("Received message of wrong size. Got: %d, Expected: %d\n", len, sizeof(def_message_struct));
+//         #endif
+//     }
+// }
 
 
 //The channel should determined within the individual .ino file for the SU to prevent intercommunication with other SU
@@ -91,8 +91,8 @@ int init_SU_ESPNOW(sensor_unit *SU) {
     #ifdef DEBUG
     Serial.println("Registered callbacks");
     #endif
-    esp_now_register_send_cb(onDataSent);
-    esp_now_register_recv_cb(esp_now_recv_cb_t(onDataRecv));
+    // esp_now_register_send_cb(onDataSent);
+    // esp_now_register_recv_cb(esp_now_recv_cb_t(onDataRecv));
 
     return return_val;
 }

@@ -74,11 +74,12 @@ int init_SU_ESPNOW(sensor_unit *SU) {
         Serial.println("Succesfully initialized ESPNOW");
         #endif
     }
-    memcpy(SU->CU_PEER_INF.peer_addr, SU->CU_ADDR, 6);
-    SU->CU_PEER_INF.encrypt = false;
-    SU->CU_PEER_INF.channel = 0;
+    esp_now_peer_info_t peerInfo;
+    memcpy(peerInfo.peer_addr, SU->CU_ADDR, 6);
+    peerInfo.channel = 0;
+    peerInfo.encrypt = false;
 
-    if (esp_now_add_peer(&SU->CU_PEER_INF)!= ESP_OK) {
+    if (esp_now_add_peer(&peerInfo)!= ESP_OK) {
         #ifdef DEBUG
         Serial.println("Failed to add peer");
         #endif
@@ -130,18 +131,15 @@ int init_CU_ESPNOW(communication_unit *CU) {
 
     int return_val = 0;
     int registered_peers = 0; // Use a local counter
-
+    esp_now_peer_info_t peerInfo[CU->numOfSU];
     for (int i = 0; i < CU->numOfSU; i++) { // Assuming `maxNumOfSU` is the size of the array
         if (is_zero_mac(CU->SU_ADDR[i])) {
             break; // Stop if we find an empty MAC address
         }
-
-        memcpy(CU->SU_PEER_INF[i].peer_addr, CU->SU_ADDR[i], 6);
-        CU->SU_PEER_INF[i].encrypt = false;
-        
-        CU->SU_PEER_INF[i].channel = 0; 
-
-        if (esp_now_add_peer(&CU->SU_PEER_INF[i]) != ESP_OK) {
+        memcpy(peerInfo[i].peer_addr, CU->SU_ADDR[i], 6);
+        peerInfo[i].channel = 0;
+        peerInfo[i].encrypt = 0;
+        if (esp_now_add_peer(&peerInfo[i]) != ESP_OK) {
             #ifdef DEBUG
             Serial.print("Failed to add peer: ");
             Serial.println(i);

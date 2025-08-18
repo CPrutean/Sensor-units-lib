@@ -92,7 +92,7 @@ typedef struct communication_unit{
     uint8_t SU_ADDR[6][6];
     esp_now_peer_info_t SU_PEER_INF[6];
     sensor_unit_status status[6];
-    sensor_type SU_AVLBL_MODULES[6][3];
+    sensor_type *SU_AVLBL_MODULES[6];
     uint8_t SU_NUM_MODULES[6];
     char** names;
     uint8_t numOfSU;

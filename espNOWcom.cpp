@@ -91,9 +91,24 @@ int init_SU_ESPNOW(sensor_unit *SU) {
     #ifdef DEBUG
     Serial.println("Registered callbacks");
     #endif
-    esp_now_register_send_cb(onDataSent);
-    esp_now_register_recv_cb(esp_now_recv_cb_t(onDataRecv));
-
+    if (esp_now_register_send_cb(onDataSent) != ESP_OK) {
+        #ifdef DEBUG
+        Serial.println("Failed to register sent callback");
+        #endif
+    } else {
+        #ifdef DEBUG
+        Serial.println("Succesfully initialized send callback");
+        #endif
+    }
+    if (esp_now_register_recv_cb(esp_now_recv_cb_t(onDataRecv)) != ESP_OK) {
+        #ifdef DEBUG
+        Serial.println("Failed to register recieve callback");
+        #endif
+    } else {
+        #ifdef DEBUG
+        Serial.println("Succesfully initialized recieve callback");
+        #endif
+    }
     return return_val;
 }
 
@@ -133,6 +148,9 @@ int init_CU_ESPNOW(communication_unit *CU) {
             #endif
             return_val = -1;
         } else {
+            #ifdef DEBUG
+            Serial.println("Succesfully added peer");
+            #endif
             registered_peers++;
         }
     }
@@ -142,9 +160,25 @@ int init_CU_ESPNOW(communication_unit *CU) {
     Serial.println("Registered callbacks");
     #endif    
 
-    esp_now_register_send_cb(onDataSent);
-    esp_now_register_recv_cb(esp_now_recv_cb_t(onDataRecv));
-
+    if (esp_now_register_send_cb(onDataSent) != ESP_OK) {
+        #ifdef DEBUG
+        Serial.println("Failed to register sent callback");
+        #endif
+    } else {
+        #ifdef DEBUG
+        Serial.println("Succesfully initialized send callback");
+        #endif
+    }
+    if (esp_now_register_recv_cb(esp_now_recv_cb_t(onDataRecv)) != ESP_OK) {
+        #ifdef DEBUG
+        Serial.println("Failed to register recieve callback");
+        #endif
+    } else {
+        #ifdef DEBUG
+        Serial.println("Succesfully initialized recieve callback");
+        #endif
+    }
+ 
     return return_val;
 }
 

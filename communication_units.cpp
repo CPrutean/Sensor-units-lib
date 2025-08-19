@@ -25,34 +25,43 @@ int substring(const char* source, int start, int len, char* dest, int bufferLen)
     return 0;
 }
 
-int handleMSG_CU(def_message_struct msgRecv, int SUInd) {
+int handleMSG_CU(const def_message_struct& msgRecv, int SUInd) {
     if (com_unit_ptr == nullptr) {
         #ifdef DEBUG
         Serial.print("Com_unit_ptr was never initialized");
         #endif
         return -1;
     }
-    int i = 0;
+
     char returnVal[MAXPYSTRINGLEN];
-    returnVal[0] = '\0';
+
     snprintf(returnVal, sizeof(returnVal), "%s", msgRecv.message);
-    
+
     if (strncmp(msgRecv.message, sens_unit_response[0], MAX_CMD_LENGTH) == 0) {
         strncat(returnVal, pyStrSeper, sizeof(returnVal) - strlen(returnVal) - 1);
-        strncat(returnVal, status_strings[(int)msgRecv.values[0]], sizeof(returnVal) - strlen(returnVal) - 1);
-    } else if (com_unit_ptr != nullptr && strncmp(msgRecv.message, sens_unit_response[1], strlen(msgRecv.message)) == 0) {
-        for (i = 0; i < msgRecv.numValues; i++) {
+
+        int status_index = (int)msgRecv.values[0];
+        if (status_index >= 0 && status_index < 3) {
+            strncat(returnVal, status_strings[status_index], sizeof(returnVal) - strlen(returnVal) - 1);
+        } else {
+            strncat(returnVal, "INVALID_STATUS", sizeof(returnVal) - strlen(returnVal) - 1);
+        }
+    } else if (strncmp(msgRecv.message, sens_unit_response[1], strlen(sens_unit_response[1])) == 0) {
+        for (int i = 0; i < msgRecv.numValues; i++) {
             com_unit_ptr->SU_AVLBL_MODULES[msgRecv.suInd][i] = (sensor_type)msgRecv.values[i];
             com_unit_ptr->SU_NUM_MODULES[msgRecv.suInd]++;
         }
+        
     } else {
-        for (i = 0; i < msgRecv.numValues; i++) {
-            strncat(returnVal, pyStrSeper, MAXPYSTRINGLEN);
+        for (int i = 0; i < msgRecv.numValues; i++) {
+            strncat(returnVal, pyStrSeper, sizeof(returnVal) - strlen(returnVal) - 1);
+
             int len = snprintf(NULL, 0, "%f", msgRecv.values[i]);
-            char* tempStr = (char*) malloc(sizeof(char)*(len+1));
+            char* tempStr = (char*) malloc(sizeof(char) * (len + 1));
+
             if (tempStr != NULL) {
-                snprintf(tempStr, len+1, "%f", msgRecv.values[i]);
-                strncat(returnVal, tempStr, MAXPYSTRINGLEN);
+                snprintf(tempStr, len + 1, "%f", msgRecv.values[i]);
+                strncat(returnVal, tempStr, sizeof(returnVal) - strlen(returnVal) - 1);
                 free(tempStr);
             } else {
                 #ifdef DEBUG
@@ -61,8 +70,8 @@ int handleMSG_CU(def_message_struct msgRecv, int SUInd) {
             }
         }
     }
-    returnVal[strlen(returnVal)] = '\0';
     stageForReturn(returnVal);
+    return 0; 
 }
 
 
@@ -183,10 +192,3 @@ void respondPiRequest(const char* str) {
     }
     i = 0;
 }
-
-
-
-
-
-
-

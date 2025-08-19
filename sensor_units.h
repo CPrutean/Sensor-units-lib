@@ -137,7 +137,7 @@ sensor types are declared within their localized struct
 void initCU(communication_unit *CU);
 
 
-int handleMSG_CU(def_message_struct msgRecv, int SUInd);
+int handleMSG_CU(const def_message_struct &msgRecv, int SUInd);
 void handleRequestSU(char* cmd_passed, def_message_struct *response);
 
 void readAll(sensor_unit *SU);

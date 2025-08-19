@@ -118,7 +118,7 @@ void readAll(sensor_unit *SU, def_message_struct *msg) {
 
     readGPSLatAndLong(readings, sensorHash, SU, &readingsInd);
 
-    writeToEEPROM(readings, sensorHash, readingsInd+1, msg);
+    writeToEEPROM(readings, sensorHash, readingsInd, msg);
 }
 
 
@@ -204,8 +204,7 @@ void handleRequestSU(char* cmd_passed, def_message_struct *response) {
     memset(response, 0, sizeof(def_message_struct));
     response->message[0] = '\0';
     if (sens_unit_ptr == nullptr) {
-        strncpy(response->message, "sens_unit_ptr wasnt initialized", MAX_MSG_LENGTH);
-        response->message[strlen(response->message)] = '\0';
+        response->strlen = snprintf(response->message, MAX_MSG_LENGTH, "%s", "sens_unit_ptr was never initialized");
         return;
     }
     int i;

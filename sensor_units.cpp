@@ -80,10 +80,10 @@ bool readFromEEPROM(sensor_type sensor, int ind, EEPROMData *data, def_message_s
 void readTempAndHumid(float* readings, sensor_type *sensorHash, sensor_unit *SU, int* readingsInd) {
     if (SU->dht_sensor != nullptr) {
         readings[*readingsInd] = SU->dht_sensor->readTemperature();
-        sensorHash[*(readingsInd)++] = TEMP_AND_HUMID;
+        sensorHash[(*readingsInd)++] = TEMP_AND_HUMID;
         
         readings[*readingsInd] = SU->dht_sensor->readHumidity();
-        sensorHash[*(readingsInd)++] = TEMP_AND_HUMID;
+        sensorHash[(*readingsInd)++] = TEMP_AND_HUMID;
     }
 }
 
@@ -92,10 +92,10 @@ void readTempAndHumid(float* readings, sensor_type *sensorHash, sensor_unit *SU,
 void readGPSLatAndLong(float* readings, sensor_type *sensorHash, sensor_unit *SU, int* readingsInd) {
     if (SU->gpsSerial != nullptr && SU->gpsSerial->available()) {
         readings[*readingsInd] = SU->gps->location.lat();
-        readings[*(readingsInd)++] = GPS;
+        sensorHash[(*readingsInd)++] = GPS;
 
         readings[*readingsInd] = SU->gps->location.lng();
-        readings[*(readingsInd)++] = GPS;
+        sensorHash[(*readingsInd)++] = GPS;
     }
 }
 
@@ -113,7 +113,7 @@ void returnSensUnits(def_message_struct *msg) {
 void readAll(sensor_unit *SU, def_message_struct *msg) {
     float readings[MAX_READINGS];
     sensor_type sensorHash[MAX_READINGS];
-    int readingsInd;
+    int readingsInd = 0;
     readTempAndHumid(readings, sensorHash, SU, &readingsInd);
 
     readGPSLatAndLong(readings, sensorHash, SU, &readingsInd);
@@ -214,7 +214,7 @@ void handleRequestSU(char* cmd_passed, def_message_struct *response) {
     bool completed = false;
     for (i = 0; i < NUM_OF_SENSORS; i++) {
         while (sensors[i].commands[j]!=NULL) {
-            if (strncmp(sensors[i].commands[j], cmd_passed, MAX_CMD_LENGTH)) {
+            if (strncmp(sensors[i].commands[j], cmd_passed, MAX_CMD_LENGTH) == 0) {
                 response->strlen = snprintf(response->message, MAX_MSG_LENGTH, "%s", sensors[i].responses[j]);
                 handleSensorRequests(sensors[i].sensor, response, j);
                 completed = true;

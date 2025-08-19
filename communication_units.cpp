@@ -42,7 +42,7 @@ int handleMSG_CU(def_message_struct msgRecv, int SUInd) {
         strncat(returnVal, status_strings[(int)msgRecv.values[0]], sizeof(returnVal) - strlen(returnVal) - 1);
     } else if (com_unit_ptr != nullptr && strncmp(msgRecv.message, sens_unit_response[1], strlen(msgRecv.message)) == 0) {
         for (i = 0; i < msgRecv.numValues; i++) {
-            com_unit_ptr->SU_AVLBL_MODULES[msgRecv.suInd][i] = (sensor_type)msgRecv.values[i++];
+            com_unit_ptr->SU_AVLBL_MODULES[msgRecv.suInd][i] = (sensor_type)msgRecv.values[i];
             com_unit_ptr->SU_NUM_MODULES[msgRecv.suInd]++;
         }
     } else {
@@ -53,12 +53,12 @@ int handleMSG_CU(def_message_struct msgRecv, int SUInd) {
             if (tempStr != NULL) {
                 snprintf(tempStr, len+1, "%f", msgRecv.values[i]);
                 strncat(returnVal, tempStr, MAXPYSTRINGLEN);
+                free(tempStr);
             } else {
                 #ifdef DEBUG
                 Serial.print("Malloc failed when parsing floats");
                 #endif
             }
-            free(tempStr);
         }
     }
     stageForReturn(returnVal);
@@ -134,7 +134,7 @@ void respondPiRequest(const char* str) {
             return;
         }
         j = 0;
-        while (pyKeywordsArr[i][j] != NULL && strncmp(keywordArr[2], pyKeywordsArr[i][j], keywordArrLen[2]) != 0) {
+        while (pySensorCmds[i][j] != NULL && strncmp(keywordArr[2], pySensorCmds[i][j], keywordArrLen[2]) != 0) {
             j++;
         }
         if (pyKeywordsArr[i][j] == NULL) {

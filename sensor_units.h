@@ -49,8 +49,6 @@ typedef struct def_message_struct {
     float values[4];
     uint8_t urgency;
     uint8_t numValues;
-    char name[MAX_NAME_LEN];
-    uint8_t nameLen;
     uint8_t suInd;
 } def_message_struct;
 
@@ -86,7 +84,7 @@ typedef struct sensor_unit{
     TinyGPSPlus *gps;
     uint8_t CU_ADDR[6];
     msg_queue *queue;
-    char* name;
+    char name[MAX_NAME_LEN];
 };
 
 typedef struct communication_unit{
@@ -136,6 +134,10 @@ sensor types are declared within their localized struct
 
 void initCU(communication_unit *CU);
 
+bool initSU(sensor_unit *SU);
+bool readFromEEPROM(char* nameDest, int destSize, def_message_struct *msg);
+
+int substring(const char* source, int start, int len, char* dest, int bufferLen);
 
 int handleMSG_CU(const def_message_struct &msgRecv, int SUInd);
 void handleRequestSU(char* cmd_passed, def_message_struct *response);
@@ -143,4 +145,4 @@ void handleRequestSU(char* cmd_passed, def_message_struct *response);
 void readAll(sensor_unit *SU);
 void clearEEPROM(); 
 int sendMessage(uint8_t brdcstAddr[6], uint8_t* msg, int len);
-void respondPiRequest(const char* str);
+void respondPiRequest(const char* str); 

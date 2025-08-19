@@ -7,8 +7,6 @@ const char* pyKeywordsArr[][10] = {{"PULL", "PUSH", NULL}, {"TEMP AND HUMID", "G
 const char* pySensorCmds[][10] = {{"TEMP", "HUMID", "ALL", NULL}, {"LAT AND LONG", "ALL", NULL}, {"NEW NAME"}};
 
 
-const int MAXPYSTRINGLEN = 1000;
-
 
 
 inline void stageForReturn(char* str) {
@@ -25,6 +23,7 @@ int substring(const char* source, int start, int len, char* dest, int bufferLen)
     return 0;
 }
 
+const int MAXPYSTRINGLEN = 1000;
 int handleMSG_CU(const def_message_struct& msgRecv, int SUInd) {
     if (com_unit_ptr == nullptr) {
         #ifdef DEBUG

@@ -6,8 +6,8 @@ char* temp_sensor_responses[] = {"TEMP", "HUMIDITY", NULL};
 char* gps_sensor_cmds[] = {"PULL LOCATION",NULL};
 char* gps_sensor_responses[] = {"LOCATION", NULL};
 
-char* sens_unit_msgs[] = {"PULL STATUS", "PULL SENS UNITS", "PUSH NAME", NULL};
-char* sens_unit_response[] = {"Status", "Sens_units", "Name set", NULL};
+char* sens_unit_msgs[] = {"PULL STATUS", "PULL SENS UNITS", "PULL NAME", "PUSH NAME", NULL};
+char* sens_unit_response[] = {"Status", "Sens units", "Name set", NULL};
 
 char* sens_unit_strings[] = {"Temp and humidity", "GPS", NULL};
 char* status_strings[] = {"Online", "Error", "Offline",NULL};

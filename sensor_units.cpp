@@ -225,6 +225,7 @@ void handleRequestSU(char* cmd_passed, def_message_struct *response) {
         if (completed) {
             break;
         }
+        j = 0;
     }
     if (!completed) {
         memset(response, 0, sizeof(response));

@@ -202,6 +202,7 @@ void handleSensorRequests(sensor_type sensor, def_message_struct *msg, int ind) 
 //Takes in the command passed and a default message struct to respond to
 void handleRequestSU(char* cmd_passed, def_message_struct *response) {
     memset(response, 0, sizeof(def_message_struct));
+    response->message[0] = '\0';
     if (sens_unit_ptr == nullptr) {
         strncpy(response->message, "sens_unit_ptr wasnt initialized", MAX_MSG_LENGTH);
         response->message[strlen(response->message)] = '\0';
@@ -210,8 +211,6 @@ void handleRequestSU(char* cmd_passed, def_message_struct *response) {
     int i;
     int j = 0;
     
-    memset(response, 0, sizeof(*response));
-    response->message[0] = '\0';
     bool completed = false;
     for (i = 0; i < NUM_OF_SENSORS; i++) {
         while (sensors[i].commands[j]!=NULL) {
@@ -221,6 +220,7 @@ void handleRequestSU(char* cmd_passed, def_message_struct *response) {
                 completed = true;
                 break;
             }
+            j++;
         }
         if (completed) {
             break;
@@ -232,10 +232,3 @@ void handleRequestSU(char* cmd_passed, def_message_struct *response) {
     }
     sendMessage(sens_unit_ptr->CU_ADDR, (uint8_t*)response, sizeof(*response));
 }
-
-
-
-
-
-
-

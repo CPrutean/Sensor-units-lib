@@ -61,6 +61,7 @@ int handleMSG_CU(def_message_struct msgRecv, int SUInd) {
             }
         }
     }
+    returnVal[strlen(returnVal)] = '\0';
     stageForReturn(returnVal);
 }
 

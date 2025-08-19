@@ -215,7 +215,7 @@ void handleRequestSU(char* cmd_passed, def_message_struct *response) {
     for (i = 0; i < NUM_OF_SENSORS; i++) {
         while (sensors[i].commands[j]!=NULL) {
             if (strncmp(sensors[i].commands[j], cmd_passed, MAX_CMD_LENGTH)) {
-                response->strlen = snprintf(response->message, MAX_MSG_LENGTH, "%s", sensors[i].commands[j]);
+                response->strlen = snprintf(response->message, MAX_MSG_LENGTH, "%s", sensors[i].responses[j]);
                 handleSensorRequests(sensors[i].sensor, response, j);
                 completed = true;
                 break;

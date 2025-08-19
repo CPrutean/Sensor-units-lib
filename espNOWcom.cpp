@@ -19,7 +19,6 @@ int sendMessage(uint8_t brdcstAddr[6], uint8_t* msg, int len) {
 }
 
 
-
 void initCU(communication_unit *CU) {
     def_message_struct msg;
     memset(&msg, 0, sizeof(msg));

@@ -40,7 +40,7 @@ extern char* sens_unit_response[];
 extern char* sens_unit_strings[];
 extern char* status_strings[];
 
-enum sensor_type {TEMP_AND_HUMID = 0, GPS, NUM_OF_SENSORS};
+enum sensor_type {TEMP_AND_HUMID = 0, GPS, BASE_SENS_UNIT, NUM_OF_SENSORS};
 enum sensor_unit_status {ONLINE = 0, ERROR, OFFLINE};
 
 typedef struct def_message_struct {

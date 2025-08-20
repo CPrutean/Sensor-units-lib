@@ -3,10 +3,6 @@
 //Py string word seperator
 char pyStrSeper[] = {'|', '\0'};
 
-const char* pyKeywordsArr[][10] = {{"PULL", "PUSH", NULL}, {"TEMP AND HUMID", "GPS", "ALL", NULL}};
-const char* pySensorCmds[][10] = {{"TEMP", "HUMID", "ALL", NULL}, {"LAT AND LONG", "ALL", NULL}, {"NEW NAME"}};
-
-
 
 
 inline void stageForReturn(char* str) {
@@ -75,119 +71,134 @@ int handleMSG_CU(const def_message_struct& msgRecv, int SUInd) {
 
 
 const int maxKeywordLen = 30;
+
+
+//the PI will send an index for what corresponding SU or all at the end of the message to correspond to which SU it is pulling from
 void respondPiRequest(const char* str) {
     #ifdef DEBUG
     Serial.print("MESSAGE RECIEVED");
     #endif
-    char keywordArr[10][30];
-    int keywordArrLen[10];
     int len = strlen(str);
-    int i = 0;
+    char keywords[10][MAX_CMD_LENGTH];
+    int i;
     int lastInd = 0;
     int keyArrInd = 0;
     for (i = 0; i < len; i++) {
-        if (str[i] == pyStrSeper[0] && keyArrInd<10) {
-            substring(str, lastInd, (i - lastInd), keywordArr[keyArrInd], maxKeywordLen);
-            if (keywordArr[keyArrInd] != nullptr) { // Always check malloc result
-                keywordArrLen[keyArrInd] = strlen(keywordArr[keyArrInd]);
-                #ifdef DEBUG
-                Serial.println(keywordArr[keyArrInd]);
-                #endif
-                keyArrInd++;
-            }
+        if (str[i] == pyStrSeper[0]) {
+            substring(str, lastInd, i-lastInd, keywords[keyArrInd], MAX_CMD_LENGTH);
             lastInd = i+1;
         }
     }
-    if (lastInd <= len && keyArrInd < 10) {
-        substring(str, lastInd, len - lastInd, keywordArr[keyArrInd], maxKeywordLen);
-        if (keywordArr[keyArrInd] != nullptr) {
-            keywordArrLen[keyArrInd] = strlen(keywordArr[keyArrInd]);
-            keyArrInd++;
-        }
-    }
-
-    
-    //The first index is always going to determine push or pull in a command
-    //The second specifies what sensor were pulling or pushing to whether thats the temperature sensor or the gps
-
-    //The raspberry pi shouldnt be aware of how many sensors units have which sensors
-    //Instead what will happen is itll recieve multiple readings and then average the result of all of them
-
-    //TODO IMPLEMENT PUSH FUNCTIONALITY(currently no SU units require push functionality to be implemented later with more sensors being added)
-
-    //If recieved push all send requests to all available sensors 
-    i = 0;
-    int j = 0;
-    int k = 0;
-    def_message_struct msg;
-    if (strncmp(keywordArr[0], pyKeywordsArr[0][0], keywordArrLen[0]) == 0 && strncmp(keywordArr[1], pyKeywordsArr[1][2], keywordArrLen[1]) == 0) {
+    //Case for pulling all available data from all available sensor unitsz
+    if (keywords[0] != NULL && keywords[1] != NULL && strncmp(keywords[0], "PULL", strlen("PULL")) == 0 && strncmp(keywords[1], "ALL", strlen("ALL")) == 0) {
+        int j;
+        int k;
+        int l = 0;
+        def_message_struct msg;
+        memset(&msg, 0, sizeof(msg));
         for (i = 0; i < com_unit_ptr->numOfSU; i++) {
-            for (j = 0; j < com_unit_ptr->SU_NUM_MODULES[i]; j++) {
-                while (sensors[com_unit_ptr->SU_AVLBL_MODULES[i][j]].commands[k] != NULL) {
-                    memset(&msg, 0, sizeof(msg));
-                    msg.message[0] = '\0';
-                    strncpy(msg.message, sensors[com_unit_ptr->SU_AVLBL_MODULES[i][j]].commands[k], MAX_MSG_LENGTH);
-                    sendMessage(com_unit_ptr->SU_ADDR[i], (uint8_t*)&msg, sizeof(msg));
-                    k++;
-                }
-                k = 0;
+            
+            for (j = 0; j < 3; j++) {
+                msg.message[0] = '\0';
+                strncpy(msg.message, sensors[BASE_SENS_UNIT].commands[j], MAX_MSG_LENGTH);
+                msg.message[strlen(sensors[BASE_SENS_UNIT].commands[j])] = '\0';
+                sendMessage(com_unit_ptr->SU_ADDR[i], (uint8_t*)&msg, sizeof(msg));
             }
-        }
-    } else if (strncmp(keywordArr[0], pyKeywordsArr[0][0], keywordArrLen[0]) == 0) {
-        i = 0;
-        while (pyKeywordsArr[1][i] != NULL && strncmp(keywordArr[1], pyKeywordsArr[1][i], keywordArrLen[1]) != 0) {
-            i++;
-        }
-        if (pyKeywordsArr[1][i] == NULL) {
-            Serial.println("pyKeywordsArr was null terminating");
-            return;
-        }
-        j = 0;
-        while (pySensorCmds[i][j] != NULL && strncmp(keywordArr[2], pySensorCmds[i][j], keywordArrLen[2]) != 0) {
-            j++;
-        }
-        if (pyKeywordsArr[i][j] == NULL) {
-            Serial.println("pyKeywordsArr was null terminating");
-            return;
-        }
-
-        k = 0;
-        sensor_type sensor = (sensor_type)i;
-        int l;
-        int m;
-        
-        if (strncmp(pySensorCmds[i][j], "ALL", 3) == 0) {
-            for (l = 0; l < com_unit_ptr->numOfSU; l++) {
-                for (m = 0; m < com_unit_ptr->SU_NUM_MODULES[l]; m++) {
-                    if (com_unit_ptr->SU_AVLBL_MODULES[l][m] == NUM_OF_SENSORS) {
-                        break;
-                    }
-                    if (com_unit_ptr->SU_AVLBL_MODULES[l][m] == sensor) {
-                        while (sensors[i].commands[k] != NULL)  {
-                            memset(&msg, 0, sizeof(msg));
+            for (k = 0; k < com_unit_ptr->SU_NUM_MODULES[i]; k++) {
+                switch(com_unit_ptr->SU_AVLBL_MODULES[i][k]) {
+                    case (TEMP_AND_HUMID):
+                        while (sensors[TEMP_AND_HUMID].commands[l] != NULL) {
                             msg.message[0] = '\0';
-                            msg.strlen = snprintf(msg.message, MAX_MSG_LENGTH, "%s", sensors[i].commands[k]);
-                            sendMessage(com_unit_ptr->SU_ADDR[l], (uint8_t*)&msg, sizeof(msg));
-                            k++;
+                            strncpy(msg.message, sensors[TEMP_AND_HUMID].commands[l], MAX_MSG_LENGTH);
+                            sendMessage(com_unit_ptr->SU_ADDR[i], (uint8_t*)&msg, sizeof(msg));
+                            l++;
                         }
                         break;
-                    }
-                }
-            }
-        } else {
-            for (l = 0; l < com_unit_ptr->numOfSU; l++) {
-                for (m = 0; m < com_unit_ptr->SU_NUM_MODULES[l]; m++) {
-                    if (com_unit_ptr->SU_AVLBL_MODULES[l][m] == sensor) {
-                        memset(&msg, 0, sizeof(msg));
-                        msg.message[0] = '\0';
-                        msg.strlen = snprintf(msg.message, MAX_MSG_LENGTH, "%s", sensors[i].commands[j]);
-                        sendMessage(com_unit_ptr->SU_ADDR[l], (uint8_t*)&msg, sizeof(msg));
-                    }
+                    case (GPS):
+                        while (sensors[GPS].commands[l] != NULL) {
+                            msg.message[0] = '\0';
+                            strncpy(msg.message, sensors[TEMP_AND_HUMID].commands[l], MAX_MSG_LENGTH);
+                            sendMessage(com_unit_ptr->SU_ADDR[i], (uint8_t*)&msg, sizeof(msg));
+                            l++;
+                        }
+                        break;
+                    default:
+                        break;
                 }
             }
         }
-    } else { //Assuming these are the push commands
-        
+    } else {
+        int i;
+        int j = 0;
+        bool commandFound = false;
+        for (i = 0; i < NUM_OF_SENSORS; i++) {
+            j = 0;
+            while (sensors[i].commands[j] != NULL) {
+                if (strncmp(keywords[0], sensors[i].commands[j], strlen(keywords[0])) == 0) {
+                    commandFound = true;
+                    break;
+                }
+                j++;
+            }
+            if (commandFound) {
+                break;
+            }
+        }
+        //If we pass a command and are pulling from all available units then send them to every unit which contains the sensor and command which was found
+        if (strncmp(keywords[1], "ALL", strlen("ALL")) == 0) {
+            i = 0;
+            int j;
+            bool commandFound = false;
+            while (i < NUM_OF_SENSORS) {
+                while (sensors[i].commands[j] != NULL) {
+                    if (strncmp(sensors[i].commands[j], keywords[0], strlen(keywords[0])) == 0) {
+                        commandFound = true;
+                        break;
+                    }
+                    j++;
+                }
+                if (commandFound) {
+                    break;
+                }
+                i++;
+            }
+            sensor_type sensor = (sensor_type)i;
+            def_message_struct msg;
+            memset(&msg, 0, sizeof(msg));
+            int k;
+            int l;
+            commandFound = false;
+            for (k = 0; k < com_unit_ptr->numOfSU; k++) {
+                for (l = 0; l < com_unit_ptr->SU_NUM_MODULES[k]; l++) {
+                    if (com_unit_ptr->SU_AVLBL_MODULES[k][l] == sensor) {
+                        msg.message[0] = '\0';
+                        strncpy(msg.message, sensors[i].commands[k], MAX_MSG_LENGTH);
+                        sendMessage(com_unit_ptr->SU_ADDR[i], (uint8_t*)&msg, sizeof(msg));
+                        commandFound = true;
+                        break;
+                    }
+                } 
+                if (commandFound) {
+                    break;
+                }
+            }
+        } else if (keywords[1] != NULL && strncmp(keywords[1], "IND", strlen("IND")) == 0 && keywords[2] != NULL) { //Else we pass an index for a sensor unit to pull from
+            int ind = 0;
+            int pow = 1;
+            for (i = strlen(keywords[2])-1; i >= 0; i--) {
+                ind += ((int)keywords[i]-(int)'0') * pow;
+                pow *= 10;
+            }
+            if (ind >= com_unit_ptr->numOfSU) {
+                stageForReturn("Invalid index passed please try again");
+            }
+            def_message_struct msg;
+            memset(&msg, 0, sizeof(msg));
+            msg.message[0] = '\0';
+            strncpy(msg.message, keywords[0], MAX_MSG_LENGTH);
+            sendMessage(com_unit_ptr->SU_ADDR[ind], (uint8_t*)&msg, sizeof(msg));
+        } else {
+            stageForReturn("Invalid command passed from raspberry pi try again");
+        }
     }
-    i = 0;
 }

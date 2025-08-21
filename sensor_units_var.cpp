@@ -9,7 +9,7 @@ char* gps_sensor_responses[] = {"LOCATION", NULL};
 char* sens_unit_msgs[] = {"PULL STATUS", "PULL SENS UNITS", "PULL NAME", "PUSH NAME", NULL};
 char* sens_unit_response[] = {"Status", "Sens units", "Name", "Name set"};
 
-char* sens_unit_strings[] = {"Temp and humidity", "GPS", NULL};
+char* sens_unit_strings[] = {"Temperature and humidity", "GPS", NULL};
 char* status_strings[] = {"Online", "Error", "Offline",NULL};
 
 sensor_definition sensors[NUM_OF_SENSORS+1] = {

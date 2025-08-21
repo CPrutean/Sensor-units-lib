@@ -7,6 +7,10 @@ char pyStrSeper[] = {'|', '\0'};
 
 inline void stageForReturn(char* str) {
     Serial.print(str);
+    //Just for making serial monitor output more readable
+    #ifdef DEBUG
+    Serial.println();
+    #endif
 }
 
 /*
@@ -60,8 +64,8 @@ int handleMSG_CU(const def_message_struct& msgRecv, int SUInd) {
         for (int i = 0; i < msgRecv.numValues; i++) {
             com_unit_ptr->SU_AVLBL_MODULES[msgRecv.suInd][i] = (sensor_type)msgRecv.values[i];
             com_unit_ptr->SU_NUM_MODULES[msgRecv.suInd]++;
-            strncat(returnVal, pyStrSeper, sizeof(returnVal)-strlen(returnVal));
-            strncat(returnVal, sens_unit_strings[(int)msgRecv.values[i]], sizeof(returnVal)-strlen(returnVal));
+            strncat(returnVal, pyStrSeper, sizeof(returnVal)-strlen(returnVal)-1);
+            strncat(returnVal, sens_unit_strings[(int)msgRecv.values[i]], sizeof(returnVal)-strlen(returnVal)-1);
         }
     } else {
         for (int i = 0; i < msgRecv.numValues; i++) {
@@ -98,8 +102,8 @@ void respondPiRequest(const char* str) {
             substring(str, lastInd, i-lastInd, keywords[keyArrInd], MAX_CMD_LENGTH);
             keyArrInd++;
             lastInd = i+1;
+            stageForReturn(keywords[i]);
         }
-        stageForReturn(keywords[i]);
     }
     //Case for pulling all available data from all available sensor unitsz
     if (keywords[0] != NULL && keywords[1] != NULL && strncmp(keywords[0], "PULL", strlen("PULL")) == 0 && strncmp(keywords[1], "ALL", strlen("ALL")) == 0) {

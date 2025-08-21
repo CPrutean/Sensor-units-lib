@@ -121,6 +121,7 @@ void respondPiRequest(const char* str) {
                     msg.message[0] = '\0';
                     msg.strlen = snprintf(msg.message, MAX_MSG_LENGTH, "%s", sensors[BASE_SENS_UNIT].commands[j]);
                 }
+                j++;
             }
             for (k = 0; k < com_unit_ptr->SU_NUM_MODULES[i]; k++) {
                 switch(com_unit_ptr->SU_AVLBL_MODULES[i][k]) {

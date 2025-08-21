@@ -116,6 +116,7 @@ void respondPiRequest(const char* str) {
         memset(&msg, 0, sizeof(msg));
         for (i = 0; i < com_unit_ptr->numOfSU; i++) {
             //Skip the push name command
+            j = 0;
             while (sens_unit_msgs[j] != NULL) {
                 if (strncmp(sensors[BASE_SENS_UNIT].commands[j], "PULL", strlen("PULL")) == 0) {
                     msg.message[0] = '\0';

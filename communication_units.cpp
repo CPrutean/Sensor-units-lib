@@ -100,9 +100,9 @@ void respondPiRequest(const char* str) {
     for (i = 0; i < len; i++) {
         if (str[i] == pyStrSeper[0]) {
             substring(str, lastInd, i-lastInd, keywords[keyArrInd], MAX_CMD_LENGTH);
+            stageForReturn(keywords[keyArrInd]);
             keyArrInd++;
             lastInd = i+1;
-            stageForReturn(keywords[i]);
         }
     }
     //Case for pulling all available data from all available sensor unitsz

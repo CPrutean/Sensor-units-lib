@@ -128,6 +128,56 @@ void respondPiRequest(const char* str) {
             lastInd = i+1;
         }
     }
+    //Provide the raspberry pi with all of the available sensor units
+    if (keywords[0] != NULL && keywords[1] != NULL && strncmp(keywords[0], "INIT", strlen("INIT")) == 0 && strncmp(keywords[1], "PI", strlen("PI")) == 0) {
+        int i;
+        int j;
+        char initStr[MAXPYSTRINGLEN];
+        initStr[0] = '\0';
+        int strLength = 0;
+        //When defining a sensor we pass the header 'SENSOR', the pyStringSeper and all of the commands and responses to the commands are seperated by commas
+        //To allow raspberry pi to sort the values
+        //Excluding '
+        //The order goes SENSOR|NAME|'commands,seperated,by,commas,'|'return,strings,seperated,by,commas,|
+        for (i = 0; i < NUM_OF_SENSORS; i++) {
+            strLength = snprintf(initStr, sizeof(initStr), "%s", "SENSOR");
+            strncat(initStr, pyStrSeper, sizeof(initStr)-strlen(initStr)-2);
+            //minus 2 in these cases to also include the comma that seperates them
+            while (sensors[i].commands[j] != NULL) {
+                if (strlen(sensors[i].commands[j]) < sizeof(initStr)-strlen(initStr)-1) {
+                    strncat(initStr, sensors[i].commands[j], sizeof(initStr)-strlen(initStr)-1);
+                    strncat(initStr, ",", sizeof(initStr)-strlen(initStr)-1);
+                } else {
+                    stageForReturn("Increase string buffer size in INIT|PI functionality");
+                    return;
+                }
+            }
+            j = 0;
+            strncat(initStr, pyStrSeper, sizeof(initStr)-strlen(initStr)-1);
+            while (sensors[i].responses[j] != NULL) {
+                if (strlen(sensors[i].responses[j]) < sizeof(initStr)-strlen(initStr)-1) {
+                    strncat(initStr, sensors[i].responses[j], sizeof(initStr)-strlen(initStr)-1);
+                    strncat(initStr, ",", sizeof(initStr)-strlen(initStr)-1);
+                } else {
+                    stageForReturn("Increase string buffer size in INIT|PI functionality");
+                    return;
+                }
+            }
+            j = 0;
+            if (sizeof(initStr)-strlen(initStr)-1 > 1) {
+            strncat(initStr, pyStrSeper, sizeof(initStr)-strlen(initStr)-1);
+            } else {
+                stageForReturn("Increase string buffer size in INIT|PI functionality");
+                return;
+            }
+            //Reset string
+            strLength = 0;
+            initStr[0] = '\0';
+        }
+        //This will then send back the sensor units, their names and their status
+        initCU(com_unit_ptr);
+        return;
+    }
     //Case for pulling all available data from all available sensor unitsz
     if (keywords[0] != NULL && keywords[1] != NULL && strncmp(keywords[0], "PULL", strlen("PULL")) == 0 && strncmp(keywords[1], "ALL", strlen("ALL")) == 0) {
         int j;

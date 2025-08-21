@@ -13,9 +13,9 @@ char* sens_unit_strings[] = {"Temperature and humidity", "GPS", NULL};
 char* status_strings[] = {"Online", "Error", "Offline",NULL};
 
 sensor_definition sensors[NUM_OF_SENSORS+1] = {
-    {temp_sensor_cmds, temp_sensor_responses, TEMP_AND_HUMID},
-    {gps_sensor_cmds, gps_sensor_responses, GPS},
-    {sens_unit_msgs, sens_unit_response, BASE_SENS_UNIT}
+    {temp_sensor_cmds, temp_sensor_responses, TEMP_AND_HUMID, "TEMPERATURE AND HUMIDITY"},
+    {gps_sensor_cmds, gps_sensor_responses, GPS, "GPS"},
+    {sens_unit_msgs, sens_unit_response, BASE_SENS_UNIT, "DEFAULT"}
 };
 
 #ifdef LCD_I2C_ADDR

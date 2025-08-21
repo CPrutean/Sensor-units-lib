@@ -71,6 +71,7 @@ typedef struct sensor_definition {
     char** commands;
     char** responses;
     sensor_type sensor;
+    const char* name;
 };
 
 

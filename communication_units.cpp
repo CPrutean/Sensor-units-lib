@@ -39,16 +39,32 @@ const int MAXPYSTRINGLEN = 1000;
 @param SUInd: the index of the SU we recieved it from
 @return: returns -1 if it failed to execute and 0 if it executed with no issues
 */
-int handleMSG_CU(const def_message_struct& msgRecv, int SUInd) {
+int handleMSG_CU(const def_message_struct& msgRecv) {
     if (com_unit_ptr == nullptr) {
         #ifdef DEBUG
         Serial.print("Com_unit_ptr was never initialized");
         #endif
         return -1;
     }
-
     char returnVal[MAXPYSTRINGLEN];
-
+    int SUInd;
+    int i;
+    int j;
+    bool macFound = true;
+    for (i = 0; i < com_unit_ptr->numOfSU; i++) {
+        for (j = 0; j < 6; j++) {
+            if (com_unit_ptr->SU_ADDR[i][j] != msgRecv.senderMac[j]) {
+                macFound = false;
+                break;
+            }
+        }
+        if (macFound) {
+            SUInd = i;
+            break;
+        } else {
+            macFound = true;
+        }
+    }
     snprintf(returnVal, sizeof(returnVal), "%s", msgRecv.message);
 
     if (strncmp(msgRecv.message, sens_unit_response[0], strlen(sens_unit_response[0])) == 0) {
@@ -62,8 +78,8 @@ int handleMSG_CU(const def_message_struct& msgRecv, int SUInd) {
         }
     } else if (strncmp(msgRecv.message, sens_unit_response[1], strlen(sens_unit_response[1])) == 0) {
         for (int i = 0; i < msgRecv.numValues; i++) {
-            com_unit_ptr->SU_AVLBL_MODULES[msgRecv.suInd][i] = (sensor_type)msgRecv.values[i];
-            com_unit_ptr->SU_NUM_MODULES[msgRecv.suInd]++;
+            com_unit_ptr->SU_AVLBL_MODULES[SUInd][i] = (sensor_type)msgRecv.values[i];
+            com_unit_ptr->SU_NUM_MODULES[SUInd]++;
             strncat(returnVal, pyStrSeper, sizeof(returnVal)-strlen(returnVal)-1);
             strncat(returnVal, sens_unit_strings[(int)msgRecv.values[i]], sizeof(returnVal)-strlen(returnVal)-1);
         }

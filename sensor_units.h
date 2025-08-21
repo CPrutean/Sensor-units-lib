@@ -52,7 +52,7 @@ typedef struct def_message_struct {
     float values[4];
     uint8_t urgency;
     uint8_t numValues;
-    uint8_t suInd;
+    uint8_t senderMac[6];
 } def_message_struct;
 
 //Default message queue class
@@ -114,7 +114,7 @@ bool readFromEEPROM(char* nameDest, int destSize, def_message_struct *msg);
 
 int substring(const char* source, int start, int len, char* dest, int bufferLen);
 
-int handleMSG_CU(const def_message_struct &msgRecv, int SUInd);
+int handleMSG_CU(const def_message_struct &msgRecv);
 void handleRequestSU(char* cmd_passed, def_message_struct *response);
 
 void readAll(sensor_unit *SU);

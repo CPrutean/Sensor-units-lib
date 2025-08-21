@@ -95,6 +95,7 @@ void respondPiRequest(const char* str) {
     for (i = 0; i < len; i++) {
         if (str[i] == pyStrSeper[0]) {
             substring(str, lastInd, i-lastInd, keywords[keyArrInd], MAX_CMD_LENGTH);
+            keyArrInd++;
             lastInd = i+1;
         }
         stageForReturn(keywords[i]);

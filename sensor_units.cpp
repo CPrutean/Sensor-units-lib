@@ -57,6 +57,7 @@ bool readFromEEPROM(char* nameDest, int destSize, def_message_struct *msg) {
     } else if (EEPROM.read(0) == 0xff) {
         msg->message[0] = '\0';
         msg->strlen = snprintf(msg->message, MAX_MSG_LENGTH, "%s", "EEPROM name was empty init a name");
+        return false;
     }
     int i = 0;
     while (i < destSize && EEPROM.read(i) != 0xff) {
@@ -108,8 +109,8 @@ bool returnSensUnits(def_message_struct* msg) {
         return false;
     }
     int i;
-    for (i = 0; i < sens_unit_ptr->moduleCount && i < sizeof(msg->values)/sizeof(msg->values[0]); i++) {
-        msg->values[i] = (float)sens_unit_ptr->modules[i];
+    for (i = 0; i < sens_unit_ptr->moduleCount && i < (sizeof(msg->values)/sizeof(msg->values[0])); i++) {
+        msg->values[i] = (int)sens_unit_ptr->modules[i];
         msg->numValues++;
     }
     return true;

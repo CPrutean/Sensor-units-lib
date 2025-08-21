@@ -50,10 +50,13 @@ void initCU(communication_unit *CU) {
     memset(&msg, 0, sizeof(msg));
     for (int j = 0; j < CU->numOfSU; j++) {
         msg.message[0] = '\0';
-        strncpy(msg.message, "PULL SENS UNITS", MAX_MSG_LENGTH - 1);
+        strncpy(msg.message, sens_unit_msgs[0], MAX_MSG_LENGTH - 1);
         sendMessage(CU->SU_ADDR[j], (uint8_t*)&msg, sizeof(msg));
         msg.message[0] = '\0';
-        strncpy(msg.message, "PULL NAME", MAX_MSG_LENGTH-1);
+        strncpy(msg.message, sens_unit_msgs[1], MAX_MSG_LENGTH-1);
+        sendMessage(CU->SU_ADDR[j], (uint8_t*)&msg, sizeof(msg));
+        msg.message[0] = '\0';
+        strncpy(msg.message, sens_unit_msgs[2], MAX_MSG_LENGTH-1);
         sendMessage(CU->SU_ADDR[j], (uint8_t*)&msg, sizeof(msg));
     }
 }

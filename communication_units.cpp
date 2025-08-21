@@ -60,8 +60,9 @@ int handleMSG_CU(const def_message_struct& msgRecv, int SUInd) {
         for (int i = 0; i < msgRecv.numValues; i++) {
             com_unit_ptr->SU_AVLBL_MODULES[msgRecv.suInd][i] = (sensor_type)msgRecv.values[i];
             com_unit_ptr->SU_NUM_MODULES[msgRecv.suInd]++;
+            strncat(returnVal, pyStrSeper, sizeof(returnVal)-strlen(returnVal));
+            strncat(returnVal, sens_unit_strings[(int)msgRecv.values[i]], sizeof(returnVal)-strlen(returnVal));
         }
-        
     } else {
         for (int i = 0; i < msgRecv.numValues; i++) {
             strncat(returnVal, pyStrSeper, sizeof(returnVal) - strlen(returnVal) - 1);

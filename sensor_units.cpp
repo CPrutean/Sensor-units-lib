@@ -1,10 +1,8 @@
 #include "sensor_units.h"
 
-//Writes all values passed to EEPROM
-//To prevent excessive read and write limits writings will only be staged to commit when youre pushing multiple commands
-//Addresses will be stored after the available index for information
-
-//Clears EEPROM cache
+/*
+@breif clears the EEPROM cache memory
+*/
 void clearEEPROM() {
     if (!EEPROM.begin(EEPROM_SIZE)) {
         Serial.println("Failed to initialize EEPROM for clearing.");
@@ -22,7 +20,11 @@ void clearEEPROM() {
     EEPROM.end();
 }
 
-//Writes values collected to EEPROM flash memory
+/*
+@breif writes a string to EEPROM cache which ends the string in a sentinel value
+@param name: the string to write to EEPROM cache
+@param *msg: default message parameter for error handling
+*/
 void writeToEEPROM(const char* name, def_message_struct* msg) {
     if (!EEPROM.begin(EEPROM_SIZE)) {
         msg->strlen += snprintf(msg->message, MAX_MSG_LENGTH, "%s", "FAILED TO INITIATE EEPROM");
@@ -39,8 +41,12 @@ void writeToEEPROM(const char* name, def_message_struct* msg) {
     EEPROM.end();
 }
 
-
-//Reads the EEPROM values stored
+/*
+@breif reads a string from EEPROM and terminates once it reaches the sentinel value
+@param nameDest: the string buffer to write the name into
+@param destSize: the size of the string buffer
+@param *msg: default message pointer for error handling if something goes wrong
+*/
 bool readFromEEPROM(char* nameDest, int destSize, def_message_struct *msg) {
     if (msg == NULL) {
         return false;
@@ -61,7 +67,10 @@ bool readFromEEPROM(char* nameDest, int destSize, def_message_struct *msg) {
     return true;
 }
 
-//Determines the status of EEPROM sensors to return
+/*
+@breif determines the status of each sensor available in the sensor unit in externally defined sens_unit_ptr
+@param *msg: the default message for error handling reasons
+*/
 void determineStatus(def_message_struct *msg) {
     if (sens_unit_ptr == nullptr) {
         msg->strlen = snprintf(msg->message, MAX_MSG_LENGTH, "%s", sens_unit_response[0]);
@@ -88,6 +97,12 @@ void determineStatus(def_message_struct *msg) {
     }
 }
 
+
+/*
+@breif: returns the sensor units available in the externally defined sens_unit_ptr
+@param *msg: default message struct to return error messages
+@return: returns whether or not the command exited succesfully
+*/
 bool returnSensUnits(def_message_struct* msg) {
     if (sens_unit_ptr->moduleCount == 0 || sens_unit_ptr->modules == NULL) {
         return false;
@@ -95,17 +110,20 @@ bool returnSensUnits(def_message_struct* msg) {
     int i;
     for (i = 0; i < sens_unit_ptr->moduleCount && i < sizeof(msg->values)/sizeof(msg->values[0]); i++) {
         msg->values[i] = (float)sens_unit_ptr->modules[i];
+        msg->numValues++;
     }
     return true;
 }
 
-//For the sake of storing something in EEPROM we are going to be using floats and unions for bytes
-//The data union contains 2 values, one for a float and one for 5 bytes
-//the first 4 bytes within the data union will contain the bytes for each individual float, while the 5th corresponds to the
+
+/*
+@breif: handles requests made to different sensors and what values to return based off the index of the command passed and the command passed
+@param sensor: the sensor which corresponds to what sensor to pull values from if none is passed assume default global sensor unit commands
+@param *msg: default message struct to write error codes to
+@param ind: index of the command passed
+@param cmd_passed: the command thats passed mainly only used in the case of a new name being assigned to the sensor unit
+*/
 void handleSensorRequests(sensor_type sensor, def_message_struct *msg, int ind, char* cmd_passed) {
-    int i;
-    int valIndex = 0;
-    EEPROMData data[4];
     switch (sensor) {
         case TEMP_AND_HUMID:
             if (sens_unit_ptr->dht_sensor != nullptr && ind == 0) {
@@ -123,6 +141,7 @@ void handleSensorRequests(sensor_type sensor, def_message_struct *msg, int ind, 
             if (sens_unit_ptr->gpsSerial != nullptr && sens_unit_ptr->gps != nullptr && ind == 0) {
                 msg->values[0] = sens_unit_ptr->gps->location.lat();
                 msg->values[1] = sens_unit_ptr->gps->location.lng();
+                msg->numValues = 2;
             } else {
                 msg->message[0] = '\0';
                 msg->strlen = snprintf(msg->message, MAX_MSG_LENGTH, "%s", "UNABLE TO FIND READING");
@@ -137,7 +156,11 @@ void handleSensorRequests(sensor_type sensor, def_message_struct *msg, int ind, 
             } else if (ind == 2) {
                 msg->message[0] = '\0';
                 if (sens_unit_ptr->name[0] != '\0') {
-                    msg->strlen = snprintf(msg->message, MAX_MSG_LENGTH, "%s", sens_unit_ptr->name);
+                    msg->strlen = snprintf(msg->message, MAX_MSG_LENGTH, "%s", sens_unit_response[0]);
+                    strncat(msg->message, "|", MAX_MSG_LENGTH-msg->strlen-1);
+                    msg->strlen++;
+                    strncat(msg->message, sens_unit_ptr->name, MAX_MSG_LENGTH-(msg->strlen-1));
+                    msg->strlen+=strlen(sens_unit_ptr->name);
                 } else {
                     msg->strlen = snprintf(msg->message, MAX_MSG_LENGTH, "%s", "NAME WAS NULL PUSH A NAME TO THIS DEVICE");
                 }
@@ -149,11 +172,13 @@ void handleSensorRequests(sensor_type sensor, def_message_struct *msg, int ind, 
                     i++;
                 }
                 if (i < len) {
-                    substring(cmd_passed, i+1, (len-1-i+1), sens_unit_ptr->name, MAX_NAME_LEN);
+                    i++;
+                    sens_unit_ptr->name[0] = '\0';
+                    substring(cmd_passed, i, (len-1-i), sens_unit_ptr->name, MAX_NAME_LEN);
                     msg->message[0] = '\0';
                     msg->strlen = snprintf(msg->message, MAX_MSG_LENGTH, "%s", sens_unit_response[3]);
-                    msg->strlen += strlen("|");
                     strncat(msg->message, "|", MAX_MSG_LENGTH-msg->strlen);
+                    msg->strlen += strlen("|");
                     strncat(msg->message, sens_unit_ptr->name, MAX_MSG_LENGTH-msg->strlen);
                     msg->strlen = strlen(msg->message);
                     writeToEEPROM(sens_unit_ptr->name, msg);
@@ -170,7 +195,11 @@ void handleSensorRequests(sensor_type sensor, def_message_struct *msg, int ind, 
 }
 
 
-//Takes in the command passed and a default message struct to respond to
+/*
+brief: handle messages passed to it and commands
+param cmd_passed: the string commmand passed to it
+param *response: the default message struct to modify
+*/
 void handleRequestSU(char* cmd_passed, def_message_struct *response) {
     memset(response, 0, sizeof(def_message_struct));
     response->message[0] = '\0';

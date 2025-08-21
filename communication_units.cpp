@@ -9,7 +9,15 @@ inline void stageForReturn(char* str) {
     Serial.print(str);
 }
 
-
+/*
+@brief: basic substring function to write a start of a function
+@param source: the source string which we are taking from
+@param start: where we start copying from
+@param len: the length of how much we are copying
+@param dest: the destination for where we are copying into
+@param bufferLen: the length of the buffer which we are copying into
+@return: returns -1 if it failed to copy into the buffer and 0 if it succesfully copied into the buffer
+*/
 int substring(const char* source, int start, int len, char* dest, int bufferLen) {
     if (dest == NULL || len > bufferLen) {
         return -1;
@@ -20,6 +28,13 @@ int substring(const char* source, int start, int len, char* dest, int bufferLen)
 }
 
 const int MAXPYSTRINGLEN = 1000;
+
+/*
+@brief: handles the messages recieved from sensor units to return back to the raspberry pi
+@param msgRecv: the message recieved from the sensor unit
+@param SUInd: the index of the SU we recieved it from
+@return: returns -1 if it failed to execute and 0 if it executed with no issues
+*/
 int handleMSG_CU(const def_message_struct& msgRecv, int SUInd) {
     if (com_unit_ptr == nullptr) {
         #ifdef DEBUG
@@ -64,7 +79,10 @@ int handleMSG_CU(const def_message_struct& msgRecv, int SUInd) {
 const int maxKeywordLen = 30;
 
 
-//the PI will send an index for what corresponding SU or all at the end of the message to correspond to which SU it is pulling from
+/*
+@breif: responsed to the commands sent by the raspberry pi
+@param str: the string passed by the raspberry pi
+*/
 void respondPiRequest(const char* str) {
     #ifdef DEBUG
     Serial.print("MESSAGE RECIEVED");
@@ -88,28 +106,32 @@ void respondPiRequest(const char* str) {
         def_message_struct msg;
         memset(&msg, 0, sizeof(msg));
         for (i = 0; i < com_unit_ptr->numOfSU; i++) {
-            
-            for (j = 0; j < 3; j++) {
-                msg.message[0] = '\0';
-                strncpy(msg.message, sensors[BASE_SENS_UNIT].commands[j], MAX_MSG_LENGTH);
-                msg.message[strlen(sensors[BASE_SENS_UNIT].commands[j])] = '\0';
-                sendMessage(com_unit_ptr->SU_ADDR[i], (uint8_t*)&msg, sizeof(msg));
+            //Skip the push name command
+            while (sens_unit_msgs[j] != NULL) {
+                if (strncmp(sensors[BASE_SENS_UNIT].commands[j], "PULL", strlen("PULL")) == 0) {
+                    msg.message[0] = '\0';
+                    msg.strlen = snprintf(msg.message, MAX_MSG_LENGTH, "%s", sensors[BASE_SENS_UNIT].commands[j]);
+                }
             }
             for (k = 0; k < com_unit_ptr->SU_NUM_MODULES[i]; k++) {
                 switch(com_unit_ptr->SU_AVLBL_MODULES[i][k]) {
                     case (TEMP_AND_HUMID):
                         while (sensors[TEMP_AND_HUMID].commands[l] != NULL) {
-                            msg.message[0] = '\0';
-                            strncpy(msg.message, sensors[TEMP_AND_HUMID].commands[l], MAX_MSG_LENGTH);
-                            sendMessage(com_unit_ptr->SU_ADDR[i], (uint8_t*)&msg, sizeof(msg));
+                            if (strncmp(sensors[TEMP_AND_HUMID].commands[l], "PULL", strlen("PULL")) == 0) {
+                                msg.message[0] = '\0';
+                                strncpy(msg.message, sensors[TEMP_AND_HUMID].commands[l], MAX_MSG_LENGTH);
+                                sendMessage(com_unit_ptr->SU_ADDR[i], (uint8_t*)&msg, sizeof(msg));
+                            }
                             l++;
                         }
                         break;
                     case (GPS):
                         while (sensors[GPS].commands[l] != NULL) {
-                            msg.message[0] = '\0';
-                            strncpy(msg.message, sensors[GPS].commands[l], MAX_MSG_LENGTH);
-                            sendMessage(com_unit_ptr->SU_ADDR[i], (uint8_t*)&msg, sizeof(msg));
+                            if (strncmp(sensors[TEMP_AND_HUMID].commands[l], "PULL", strlen("PULL")) == 0) {
+                                msg.message[0] = '\0';
+                                strncpy(msg.message, sensors[GPS].commands[l], MAX_MSG_LENGTH);
+                                sendMessage(com_unit_ptr->SU_ADDR[i], (uint8_t*)&msg, sizeof(msg));
+                            }
                             l++;
                         }
                         break;
@@ -136,28 +158,15 @@ void respondPiRequest(const char* str) {
                 break;
             }
         }
+        sensor_type sensor = (sensor_type)i;
         //If we pass a command and are pulling from all available units then send them to every unit which contains the sensor and command which was found
         if (strncmp(keywords[1], "ALL", strlen("ALL")) == 0) {
             i = 0;
             int j;
-            bool commandFound = false;
-            while (i < NUM_OF_SENSORS) {
-                j = 0;
-                while (sensors[i].commands[j] != NULL) {
-                    if (strncmp(sensors[i].commands[j], keywords[0], strlen(keywords[0])) == 0) {
-                        commandFound = true;
-                        break;
-                    }
-                    j++;
-                }
-                if (commandFound) {
-                    break;
-                }
-                i++;
-            }
-            sensor_type sensor = (sensor_type)i;
+
             def_message_struct msg;
             memset(&msg, 0, sizeof(msg));
+
             int k;
             int l;
             commandFound = false;
@@ -165,12 +174,11 @@ void respondPiRequest(const char* str) {
                 for (l = 0; l < com_unit_ptr->SU_NUM_MODULES[k]; l++) {
                     if (com_unit_ptr->SU_AVLBL_MODULES[k][l] == sensor) {
                         msg.message[0] = '\0';
-                        strncpy(msg.message, sensors[i].commands[k], MAX_MSG_LENGTH);
-                        sendMessage(com_unit_ptr->SU_ADDR[i], (uint8_t*)&msg, sizeof(msg));
+                        msg.strlen = snprintf(msg.message, MAX_MSG_LENGTH, "%s", keywords[0]);
                         commandFound = true;
                         break;
                     }
-                } 
+                }
                 if (commandFound) {
                     break;
                 }
@@ -185,21 +193,8 @@ void respondPiRequest(const char* str) {
             if (ind >= com_unit_ptr->numOfSU) {
                 stageForReturn("Invalid index passed please try again");
             }
-            j = 0;
-            while (i < NUM_OF_SENSORS) {
-                while (sensors[i].commands[j] != NULL) {
-                    j = 0;
-                    if (strncmp(sensors[i].commands[j], keywords[0], strlen(keywords[0])) == 0) {
-                        commandFound = true;
-                        break;
-                    }
-                    j++;
-                }
-                if (commandFound) {
-                    break;
-                }
-                i++;
-            }
+            
+            j = 0;            
             sensor_type sensor = (sensor_type)i;
             bool hasSens = false;
             for (i = 0; i < com_unit_ptr->SU_NUM_MODULES[ind]; i++) {

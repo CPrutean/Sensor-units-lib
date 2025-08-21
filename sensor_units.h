@@ -26,8 +26,9 @@
 
 #define MAX_QUEUE_LEN 25
 #define MAX_ESP32_PEERS 10
-//Needs to define PI_SERIAL in .ino files to implement communication by uart
 
+
+//Default defined in sensor_units_var.cpp
 extern char* temp_sensor_cmds[];
 extern char* temp_sensor_responses[];
 
@@ -43,6 +44,8 @@ extern char* status_strings[];
 enum sensor_type {TEMP_AND_HUMID = 0, GPS, BASE_SENS_UNIT, NUM_OF_SENSORS};
 enum sensor_unit_status {ONLINE = 0, ERROR, OFFLINE};
 
+
+//The default messages sent to and from the communication and sensor units
 typedef struct def_message_struct {
     char message[MAX_MSG_LENGTH];
     uint8_t strlen;
@@ -52,6 +55,7 @@ typedef struct def_message_struct {
     uint8_t suInd;
 } def_message_struct;
 
+//Default message queue class
 class msg_queue {
     public:
         bool send(const def_message_struct& msg);
@@ -62,20 +66,15 @@ class msg_queue {
         QueueHandle_t queueHandle;
 };
 
-
-typedef struct EEPROMData {
-    float val;
-    uint8_t sensor;
-    uint8_t ind;
-} EEPROMData;
-
-
+//Default struct used to hold the commands responses and the sensor associated with the commands and responses
 typedef struct sensor_definition {
     char** commands;
     char** responses;
     sensor_type sensor;
 };
 
+
+//Default sensor unit struct which holds pointers to each object that could be defined within it
 typedef struct sensor_unit{
     sensor_type* modules;
     uint8_t moduleCount;
@@ -87,10 +86,12 @@ typedef struct sensor_unit{
     char name[MAX_NAME_LEN];
 };
 
+
+//default communication unit struct
 typedef struct communication_unit{
     uint8_t SU_ADDR[6][6];
     sensor_unit_status status[6];
-    sensor_type *SU_AVLBL_MODULES[6];
+    sensor_type SU_AVLBL_MODULES[6][NUM_OF_SENSORS-1];
     uint8_t SU_NUM_MODULES[6];
     char** names;
     uint8_t numOfSU;
@@ -98,38 +99,12 @@ typedef struct communication_unit{
 };
  
 
+//Default sensor definition struct
 extern sensor_definition sensors[];
 
-//UN COMMENT THIS WHEN INITIALIZING THE LCD_I2C OBJECT
-//Change the address as needed default i2c addresses for backpacks are 0x27
-//#define LCD_I2C_ADDR 0x27
-
-//Initialize these pointers within your .ino file and set them to the address of these individual objects
+//These two pointers need to be defined in each .ino file to make the library work succesfully
 extern sensor_unit *sens_unit_ptr;
 extern communication_unit *com_unit_ptr;
-
-//Define LCD_I2C_ADDR for error handling and testing and visible erorr handling
-#ifdef LCD_I2C_ADDR
-extern LCD_I2C LCD;
-#endif
-
-/*
--Certain things will be handled within the .ino files for the sensor units themselves
-
--Initializing the hardware serial objects will be handled within the sensor methods
-
--EspNOW communication will be handled within different sensor units .ino files however communication commands and responses will be handled 
-using the library
-
--However standard message structure will be declared here as well as replies to pull and push
-requests
-
--Sensor units will define themselves based off the structs and reply to communication units based on what
-sensor types are declared within their localized struct
-
--Simpler sensors like the temperature sensors will be handled within the library
-*/
-
 
 
 void initCU(communication_unit *CU);

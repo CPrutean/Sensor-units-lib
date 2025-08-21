@@ -50,19 +50,10 @@ int handleMSG_CU(const def_message_struct& msgRecv, int SUInd) {
     } else {
         for (int i = 0; i < msgRecv.numValues; i++) {
             strncat(returnVal, pyStrSeper, sizeof(returnVal) - strlen(returnVal) - 1);
-
             int len = snprintf(NULL, 0, "%f", msgRecv.values[i]);
-            char* tempStr = (char*) malloc(sizeof(char) * (len + 1));
-
-            if (tempStr != NULL) {
-                snprintf(tempStr, len + 1, "%f", msgRecv.values[i]);
-                strncat(returnVal, tempStr, sizeof(returnVal) - strlen(returnVal) - 1);
-                free(tempStr);
-            } else {
-                #ifdef DEBUG
-                Serial.print("Malloc failed when parsing floats");
-                #endif
-            }
+            char tempStr[30];
+            snprintf(tempStr, len + 1, "%f", msgRecv.values[i]);
+            strncat(returnVal, tempStr, sizeof(returnVal) - strlen(returnVal) - 1);
         }
     }
     stageForReturn(returnVal);
@@ -117,7 +108,7 @@ void respondPiRequest(const char* str) {
                     case (GPS):
                         while (sensors[GPS].commands[l] != NULL) {
                             msg.message[0] = '\0';
-                            strncpy(msg.message, sensors[TEMP_AND_HUMID].commands[l], MAX_MSG_LENGTH);
+                            strncpy(msg.message, sensors[GPS].commands[l], MAX_MSG_LENGTH);
                             sendMessage(com_unit_ptr->SU_ADDR[i], (uint8_t*)&msg, sizeof(msg));
                             l++;
                         }
@@ -125,6 +116,7 @@ void respondPiRequest(const char* str) {
                     default:
                         break;
                 }
+                l = 0;
             }
         }
     } else {
@@ -150,6 +142,7 @@ void respondPiRequest(const char* str) {
             int j;
             bool commandFound = false;
             while (i < NUM_OF_SENSORS) {
+                j = 0;
                 while (sensors[i].commands[j] != NULL) {
                     if (strncmp(sensors[i].commands[j], keywords[0], strlen(keywords[0])) == 0) {
                         commandFound = true;
@@ -186,17 +179,44 @@ void respondPiRequest(const char* str) {
             int ind = 0;
             int pow = 1;
             for (i = strlen(keywords[2])-1; i >= 0; i--) {
-                ind += ((int)keywords[i]-(int)'0') * pow;
+                ind += ((int)keywords[2][i]-(int)'0') * pow;
                 pow *= 10;
             }
             if (ind >= com_unit_ptr->numOfSU) {
                 stageForReturn("Invalid index passed please try again");
             }
-            def_message_struct msg;
-            memset(&msg, 0, sizeof(msg));
-            msg.message[0] = '\0';
-            strncpy(msg.message, keywords[0], MAX_MSG_LENGTH);
-            sendMessage(com_unit_ptr->SU_ADDR[ind], (uint8_t*)&msg, sizeof(msg));
+            j = 0;
+            while (i < NUM_OF_SENSORS) {
+                while (sensors[i].commands[j] != NULL) {
+                    j = 0;
+                    if (strncmp(sensors[i].commands[j], keywords[0], strlen(keywords[0])) == 0) {
+                        commandFound = true;
+                        break;
+                    }
+                    j++;
+                }
+                if (commandFound) {
+                    break;
+                }
+                i++;
+            }
+            sensor_type sensor = (sensor_type)i;
+            bool hasSens = false;
+            for (i = 0; i < com_unit_ptr->SU_NUM_MODULES[ind]; i++) {
+                if (com_unit_ptr->SU_AVLBL_MODULES[ind][i] == sensor) {
+                    hasSens = true;
+                    break;
+                }
+            }
+            if (hasSens) {
+                def_message_struct msg;
+                memset(&msg, 0, sizeof(msg));
+                msg.message[0] = '\0';
+                strncpy(msg.message, keywords[0], MAX_MSG_LENGTH);
+                sendMessage(com_unit_ptr->SU_ADDR[ind], (uint8_t*)&msg, sizeof(msg));
+            } else {
+                stageForReturn("Indicator doesnt have that sensor try again");
+            }   
         } else {
             stageForReturn("Invalid command passed from raspberry pi try again");
         }

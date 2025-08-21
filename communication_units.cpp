@@ -51,7 +51,7 @@ int handleMSG_CU(const def_message_struct& msgRecv, int SUInd) {
 
     snprintf(returnVal, sizeof(returnVal), "%s", msgRecv.message);
 
-    if (strncmp(msgRecv.message, sens_unit_response[0], MAX_CMD_LENGTH) == 0) {
+    if (strncmp(msgRecv.message, sens_unit_response[0], strlen(sens_unit_response[0])) == 0) {
         strncat(returnVal, pyStrSeper, sizeof(returnVal) - strlen(returnVal) - 1);
 
         int status_index = (int)msgRecv.values[0];
@@ -100,7 +100,9 @@ void respondPiRequest(const char* str) {
     for (i = 0; i < len; i++) {
         if (str[i] == pyStrSeper[0]) {
             substring(str, lastInd, i-lastInd, keywords[keyArrInd], MAX_CMD_LENGTH);
+            #ifdef DEBUG
             stageForReturn(keywords[keyArrInd]);
+            #endif
             keyArrInd++;
             lastInd = i+1;
         }

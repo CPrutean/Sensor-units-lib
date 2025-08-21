@@ -149,7 +149,7 @@ void handleSensorRequests(sensor_type sensor, def_message_struct *msg, int ind, 
                 msg->numValues = 0;
             }
             break;
-        default:
+        case (BASE_SENS_UNIT):
             if (ind == 0) {
                 determineStatus(msg);
             } else if (ind == 1) {
@@ -191,7 +191,11 @@ void handleSensorRequests(sensor_type sensor, def_message_struct *msg, int ind, 
                 msg->message[0] = '\0';
                 msg->strlen = snprintf(msg->message, MAX_MSG_LENGTH, "%s", "INVALID INDEX PASSED");
             }
-            break;        
+            break;
+        default:
+            msg->message[0] = '\0';
+            msg->strlen = snprintf(msg->message, MAX_MSG_LENGTH, "%s", "INVALID SENSOR FOUND");
+            break;
     }
 }
 

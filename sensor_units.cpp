@@ -46,7 +46,7 @@ bool readFromEEPROM(char* nameDest, int destSize, def_message_struct *msg) {
         return false;
     }
     if (!EEPROM.begin(EEPROM_SIZE)) {
-        msg->strlen += snprintf(msg->message, MAX_MSG_LENGTH, "%s", "FAILED TO INITIATE EEPROM");
+        msg->strlen = snprintf(msg->message, MAX_MSG_LENGTH, "%s", "FAILED TO INITIATE EEPROM");
         return false;
     } else if (EEPROM.read(0) == 0xff) {
         msg->message[0] = '\0';
@@ -80,7 +80,7 @@ void determineStatus(def_message_struct *msg) {
             msg->values[0] = (float)ERROR;
             strncat(msg->message, " DHT_FAIL", MAX_MSG_LENGTH - strlen(msg->message) - 1);
         } 
-        else if (current_sensor == GPS && (sens_unit_ptr->gpsSerial == nullptr || sens_unit_ptr->gps == nullptr || !sens_unit_ptr->gpsSerial->available())) {
+        else if (current_sensor == GPS && (sens_unit_ptr->gpsSerial == nullptr || sens_unit_ptr->gps == nullptr || !sens_unit_ptr->gpsSerial->available() || !sens_unit_ptr->gps->location.isValid())) {
             msg->values[0] = (float)ERROR;
             strncat(msg->message, " GPS_FAIL", MAX_MSG_LENGTH - strlen(msg->message) - 1);
         }
@@ -89,7 +89,7 @@ void determineStatus(def_message_struct *msg) {
 }
 
 bool returnSensUnits(def_message_struct* msg) {
-    if (sens_unit_ptr->moduleCount = 0 || sens_unit_ptr->modules == NULL) {
+    if (sens_unit_ptr->moduleCount == 0 || sens_unit_ptr->modules == NULL) {
         return false;
     }
     int i;
@@ -152,7 +152,10 @@ void handleSensorRequests(sensor_type sensor, def_message_struct *msg, int ind, 
                     substring(cmd_passed, i+1, (len-1-i+1), sens_unit_ptr->name, MAX_NAME_LEN);
                     msg->message[0] = '\0';
                     msg->strlen = snprintf(msg->message, MAX_MSG_LENGTH, "%s", sens_unit_response[3]);
-                    strncat(msg->message, sens_unit_ptr->name, MAX_MSG_LENGTH-strlen(sens_unit_response[3]));
+                    msg->strlen += strlen("|");
+                    strncat(msg->message, "|", MAX_MSG_LENGTH-msg->strlen);
+                    strncat(msg->message, sens_unit_ptr->name, MAX_MSG_LENGTH-msg->strlen);
+                    msg->strlen = strlen(msg->message);
                     writeToEEPROM(sens_unit_ptr->name, msg);
                 } else {
                     msg->message[0] = '\0';

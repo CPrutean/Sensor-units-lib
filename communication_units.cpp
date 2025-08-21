@@ -92,6 +92,11 @@ int handleMSG_CU(const def_message_struct& msgRecv) {
             strncat(returnVal, tempStr, sizeof(returnVal) - strlen(returnVal) - 1);
         }
     }
+    char SUStr[2];
+    SUStr[0] = (char)((int)'0'+SUInd);
+    SUStr[1] = '\0';
+    strncat(returnVal, pyStrSeper, sizeof(returnVal)-strlen(returnVal)-1);
+    strncat(returnVal, SUStr, sizeof(returnVal)-strlen(returnVal)-1);
     stageForReturn(returnVal);
     return 0; 
 }

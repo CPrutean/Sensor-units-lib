@@ -22,19 +22,25 @@ int sendMessage(uint8_t brdcstAddr[6], uint8_t* msg, int len) {
 void initCU(communication_unit *CU) {
     def_message_struct msg;
     memset(&msg, 0, sizeof(msg));
-    strncpy(msg.message, "PULL SENS UNITS", MAX_MSG_LENGTH - 1);
-
     for (int j = 0; j < CU->numOfSU; j++) {
+        msg.message[0] = '\0';
+        strncpy(msg.message, "PULL SENS UNITS", MAX_MSG_LENGTH - 1);
+        sendMessage(CU->SU_ADDR[j], (uint8_t*)&msg, sizeof(msg));
+        msg.message[0] = '\0';
+        strncpy(msg.message, "PULL NAME", MAX_MSG_LENGTH-1);
         sendMessage(CU->SU_ADDR[j], (uint8_t*)&msg, sizeof(msg));
     }
 }
 
-void initSU(sensor_unit *SU) {
+bool initSU(sensor_unit *SU) {
     def_message_struct temp;
     if (!readFromEEPROM(SU->name, MAX_NAME_LEN, &temp)) {
         #ifdef DEBUG
         Serial.print("Failed to read name from eeprom error code");
         Serial.println(temp.message);
         #endif
+        return false;
+    } else {
+        return true;
     }
 }

@@ -132,7 +132,7 @@ void respondPiRequest(const char* str) {
     if (keywords[0] != NULL && keywords[1] != NULL && strncmp(keywords[0], "INIT", strlen("INIT")) == 0 && strncmp(keywords[1], "PI", strlen("PI")) == 0) {
         int i;
         int j;
-        char initStr[MAXPYSTRINGLEN];
+        char initStr[MAXPYSTRINGLEN+500];
         initStr[0] = '\0';
         int strLength = 0;
         //When defining a sensor we pass the header 'SENSOR', the pyStringSeper and all of the commands and responses to the commands are seperated by commas

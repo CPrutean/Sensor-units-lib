@@ -141,8 +141,10 @@ void respondPiRequest(const char* str) {
         //The order goes SENSOR|NAME|'commands,seperated,by,commas,'|'return,strings,seperated,by,commas,|
         for (i = 0; i < NUM_OF_SENSORS; i++) {
             strLength = snprintf(initStr, sizeof(initStr), "%s", "SENSOR");
-            strncat(initStr, pyStrSeper, sizeof(initStr)-strlen(initStr)-2);
             //minus 2 in these cases to also include the comma that seperates them
+            strncat(initStr, pyStrSeper, sizeof(initStr)-strlen(initStr)-2);
+            strncat(initStr, sensors[i].name, sizeof(initStr)-strlen(initStr)-1);
+            strncat(initStr, pyStrSeper, sizeof(initStr)-strlen(initStr)-1);
             while (sensors[i].commands[j] != NULL) {
                 if (strlen(sensors[i].commands[j]) < sizeof(initStr)-strlen(initStr)-1) {
                     strncat(initStr, sensors[i].commands[j], sizeof(initStr)-strlen(initStr)-1);

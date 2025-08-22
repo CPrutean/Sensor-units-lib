@@ -30,17 +30,17 @@
 
 
 //Default defined in sensor_units_var.cpp
-extern char* temp_sensor_cmds[];
-extern char* temp_sensor_responses[];
+extern const char* temp_sensor_cmds[];
+extern const char* temp_sensor_responses[];
 
-extern char* gps_sensor_cmds[];
-extern char* gps_sensor_responses[];
+extern const char* gps_sensor_cmds[];
+extern const char* gps_sensor_responses[];
 
-extern char* sens_unit_msgs[];
-extern char* sens_unit_response[];
+extern const char* sens_unit_msgs[];
+extern const char* sens_unit_response[];
 
-extern char* sens_unit_strings[];
-extern char* status_strings[];
+extern const char* sens_unit_strings[];
+extern const char* status_strings[];
 
 enum sensor_type {TEMP_AND_HUMID = 0, GPS, BASE_SENS_UNIT, NUM_OF_SENSORS};
 enum sensor_unit_status {ONLINE = 0, ERROR, OFFLINE};
@@ -69,8 +69,8 @@ class msg_queue {
 
 //Default struct used to hold the commands responses and the sensor associated with the commands and responses
 typedef struct sensor_definition {
-    char** commands;
-    char** responses;
+    const char** commands;
+    const char** responses;
     sensor_type sensor;
     const char* name;
 };

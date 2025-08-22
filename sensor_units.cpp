@@ -157,7 +157,7 @@ void handleSensorRequests(sensor_type sensor, def_message_struct *msg, int ind, 
             } else if (ind == 2) {
                 msg->message[0] = '\0';
                 if (sens_unit_ptr->name[0] != '\0') {
-                    msg->strlen = snprintf(msg->message, MAX_MSG_LENGTH, "%s", sens_unit_response[0]);
+                    msg->strlen = snprintf(msg->message, MAX_MSG_LENGTH, "%s", sens_unit_response[2]);
                     strncat(msg->message, "|", MAX_MSG_LENGTH-msg->strlen-1);
                     msg->strlen++;
                     strncat(msg->message, sens_unit_ptr->name, MAX_MSG_LENGTH-(msg->strlen-1));

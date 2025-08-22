@@ -167,7 +167,8 @@ void respondPiRequest(const char* str) {
             }
             j = 0;
             if (sizeof(initStr)-strlen(initStr)-1 > 1) {
-            strncat(initStr, pyStrSeper, sizeof(initStr)-strlen(initStr)-1);
+                strncat(initStr, pyStrSeper, sizeof(initStr)-strlen(initStr)-1);
+                stageForReturn(initStr);
             } else {
                 stageForReturn("Increase string buffer size in INIT|PI functionality");
                 return;

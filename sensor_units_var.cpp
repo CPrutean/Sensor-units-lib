@@ -11,7 +11,7 @@ const char* sens_unit_response[] = {"Status", "Sens units", "Name", "Name set", 
 
 const char* sens_unit_strings[] = {"Temperature and humidity", "GPS", NULL};
 const char* status_strings[] = {"Online", "Error", "Offline",NULL};
-
+//They need to mirror sens_unit_strings values
 sensor_definition sensors[NUM_OF_SENSORS+1] = {
     {temp_sensor_cmds, temp_sensor_responses, TEMP_AND_HUMID, "TEMPERATURE AND HUMIDITY"},
     {gps_sensor_cmds, gps_sensor_responses, GPS, "GPS"},

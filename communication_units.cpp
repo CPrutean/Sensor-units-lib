@@ -2,6 +2,7 @@
 
 //Py string word seperator
 char pyStrSeper[] = {'|', '\0'};
+char piBufferSeper[] {'\n', '\0'};
 
 
 
@@ -97,6 +98,7 @@ int handleMSG_CU(const def_message_struct& msgRecv) {
     SUStr[1] = '\0';
     strncat(returnVal, pyStrSeper, sizeof(returnVal)-strlen(returnVal)-1);
     strncat(returnVal, SUStr, sizeof(returnVal)-strlen(returnVal)-1);
+    strncat(returnVal, piBufferSeper, sizeof(returnVal)-strlen(returnVal)-1);
     stageForReturn(returnVal);
     return 0; 
 }
@@ -170,9 +172,10 @@ void respondPiRequest(const char* str) {
             j = 0;
             if (sizeof(initStr)-strlen(initStr)-1 > 1) {
                 strncat(initStr, pyStrSeper, sizeof(initStr)-strlen(initStr)-1);
+                strncat(initStr, piBufferSeper, sizeof(initStr)-strlen(initStr)-1);
                 stageForReturn(initStr);
             } else {
-                stageForReturn("Increase string buffer size in INIT|PI functionality");
+                stageForReturn("Increase string buffer size in INIT|PI functionality\n");
                 return;
             }
             //Reset string
@@ -278,7 +281,7 @@ void respondPiRequest(const char* str) {
                 pow *= 10;
             }
             if (ind >= com_unit_ptr->numOfSU) {
-                stageForReturn("Invalid index passed please try again");
+                stageForReturn("Invalid index passed please try again\n");
             }
 
             j = 0;            
@@ -297,10 +300,10 @@ void respondPiRequest(const char* str) {
                 strncpy(msg.message, keywords[0], MAX_MSG_LENGTH);
                 sendMessage(com_unit_ptr->SU_ADDR[ind], (uint8_t*)&msg, sizeof(msg));
             } else {
-                stageForReturn("Indicator doesnt have that sensor try again");
+                stageForReturn("Indicator doesnt have that sensor try again\n");
             }   
         } else {
-            stageForReturn("Invalid command passed from raspberry pi try again");
+            stageForReturn("Invalid command passed from raspberry pi try again\n");
         }
     }
 }

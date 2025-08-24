@@ -182,6 +182,14 @@ void respondPiRequest(const char* str) {
             strLength = 0;
             initStr[0] = '\0';
         }
+        char numOfSU[20];
+        numOfSU[0] = '\0';
+        strncpy(numOfSU, "NUM_OF_SU|", sizeof(numOfSU));
+        char ind[2];
+        ind[0] = (char)(com_unit_ptr->numOfSU+(int)'0');
+        ind[1] = '\0';
+        strncat(numOfSU, ind, sizeof(numOfSU)-strlen(numOfSU)-1);
+        stageForReturn(numOfSU);
         //This will then send back the sensor units, their names and their status
         initCU(com_unit_ptr);
         return;

@@ -7,11 +7,8 @@ char piBufferSeper[] {'\n', '\0'};
 
 
 inline void stageForReturn(char* str) {
+    strncat(str, piBufferSeper, sizeof(str)-strlen(str));
     Serial.print(str);
-    //Just for making serial monitor output more readable
-    #ifdef DEBUG
-    Serial.println();
-    #endif
 }
 
 /*
@@ -98,7 +95,6 @@ int handleMSG_CU(const def_message_struct& msgRecv) {
     SUStr[1] = '\0';
     strncat(returnVal, pyStrSeper, sizeof(returnVal)-strlen(returnVal)-1);
     strncat(returnVal, SUStr, sizeof(returnVal)-strlen(returnVal)-1);
-    strncat(returnVal, piBufferSeper, sizeof(returnVal)-strlen(returnVal)-1);
     stageForReturn(returnVal);
     return 0; 
 }
@@ -172,10 +168,9 @@ void respondPiRequest(const char* str) {
             j = 0;
             if (sizeof(initStr)-strlen(initStr)-1 > 1) {
                 strncat(initStr, pyStrSeper, sizeof(initStr)-strlen(initStr)-1);
-                strncat(initStr, piBufferSeper, sizeof(initStr)-strlen(initStr)-1);
                 stageForReturn(initStr);
             } else {
-                stageForReturn("Increase string buffer size in INIT|PI functionality\n");
+                stageForReturn("Increase string buffer size in INIT|PI functionality");
                 return;
             }
             //Reset string
@@ -289,7 +284,7 @@ void respondPiRequest(const char* str) {
                 pow *= 10;
             }
             if (ind >= com_unit_ptr->numOfSU) {
-                stageForReturn("Invalid index passed please try again\n");
+                stageForReturn("Invalid index passed please try again");
             }
 
             j = 0;            
@@ -308,10 +303,10 @@ void respondPiRequest(const char* str) {
                 strncpy(msg.message, keywords[0], MAX_MSG_LENGTH);
                 sendMessage(com_unit_ptr->SU_ADDR[ind], (uint8_t*)&msg, sizeof(msg));
             } else {
-                stageForReturn("Indicator doesnt have that sensor try again\n");
+                stageForReturn("Indicator doesnt have that sensor try again");
             }   
         } else {
-            stageForReturn("Invalid command passed from raspberry pi try again\n");
+            stageForReturn("Invalid command passed from raspberry pi try again");
         }
     }
 }

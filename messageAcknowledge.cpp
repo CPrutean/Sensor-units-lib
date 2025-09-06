@@ -7,7 +7,8 @@ bool messageAcknowledge::addToWaiting(def_message_struct msg, uint8_t addr[6]) {
             xSemaphoreGive(awaitingMutex);            
             return false;
         }
-        memcpy(waitingAddr[lenWaiting], addr, sizeof(addr));
+        memcpy(waitingAddr[lenWaiting], addr, sizeof(waitingAddr[0]));
+        timeRecieved[lenWaiting] = millis();
         waitingResponse[lenWaiting++] = msg;
         xSemaphoreGive(awaitingMutex);
         return true;
@@ -15,7 +16,11 @@ bool messageAcknowledge::addToWaiting(def_message_struct msg, uint8_t addr[6]) {
 }
 
 bool messageAcknowledge::isFailedEmpty() {
-    return lenFailed <= 0;
+    if (xSemaphoreTake(failedMutex, portMAX_DELAY) == pdTRUE) {
+        bool cond = lenFailed <= 0;
+        xSemaphoreGive(failedMutex);
+        return cond;
+    }
 }
 
 bool messageAcknowledge::moveToFailed(unsigned int msgID) {
@@ -33,7 +38,7 @@ bool messageAcknowledge::moveToFailed(unsigned int msgID) {
         }
         bool msgFound = false;
         int i;
-        for (i = 0; i < lenFailed; i++) {
+        for (i = 0; i < lenWaiting; i++) {
             if (waitingResponse[i].message[0] != '\0' && waitingResponse[i].msgID == msgID) {
                 msgFound = true;
                 break;
@@ -48,15 +53,17 @@ bool messageAcknowledge::moveToFailed(unsigned int msgID) {
             return false;    
         }
 
+        memcpy(failedAddr[lenFailed], waitingAddr[i], sizeof(failedAddr[0]));
+        failedDelivery[lenFailed++] = msgToBeMoved;
+
         int j;
         for (j = i; j < lenFailed-1; j++) {
             waitingResponse[j] = waitingResponse[j+1];
-            memcpy(waitingAddr[j], waitingAddr[j+1], sizeof(waitingAddr));
+            memcpy(waitingAddr[j], waitingAddr[j+1], sizeof(waitingAddr[0]));
         }
 
         memset(waitingAddr[lenWaiting], 0, sizeof(waitingAddr[lenWaiting]));
         waitingResponse[lenWaiting--] = def_message_struct{{'\0'}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, 0, 0, {0,0,0,0,0,0}, 0};
-        failedDelivery[lenFailed++] = msgToBeMoved;
 
         xSemaphoreGive(awaitingMutex);
         xSemaphoreGive(failedMutex);
@@ -82,9 +89,11 @@ bool messageAcknowledge::removeFromWaiting(unsigned int msgID) {
         int j;
         for (j = i; j < lenWaiting-1; j++) {
             waitingResponse[j] = waitingResponse[j+1];
+            timeRecieved[j] = timeRecieved[j+1];
             memcpy(waitingAddr[j], waitingAddr[j+1], sizeof(waitingAddr[j]));
         }
         memset(waitingAddr[lenWaiting], 0, sizeof(waitingAddr[lenWaiting]));
+        timeRecieved[lenWaiting] = 0;
         waitingResponse[lenWaiting--] = def_message_struct{{'\0'}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, 0, 0, {0,0,0,0,0,0}, 0};
 
         xSemaphoreGive(awaitingMutex);
@@ -96,7 +105,7 @@ bool messageAcknowledge::retryInFailed() {
     if (xSemaphoreTake(failedMutex, portMAX_DELAY) == pdTRUE) {
         int j;
         int i = 0;
-        if (!this->isFailedEmpty()) {
+        if (lenFailed <= 0) {
             return false;
         }
         while(i < lenFailed) {
@@ -106,7 +115,8 @@ bool messageAcknowledge::retryInFailed() {
                     memcpy(failedAddr[j], failedAddr[j+1], sizeof(failedAddr[j]));
                 }
                 failedDelivery[lenFailed] = def_message_struct{{'\0'}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, 0, 0, {0,0,0,0,0,0}, 0};
-                memset(failedAddr[lenFailed--], 0, sizeof(failedAddr[lenFailed]));
+                memset(failedAddr[lenFailed], 0, sizeof(failedAddr[lenFailed]));
+                lenFailed--;
             } else {
                 i++;
             }
@@ -160,6 +170,7 @@ bool messageAcknowledge::resetFailed() {
             failedDelivery[i] = def_message_struct{{'\0'}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, 0, 0, {0,0,0,0,0,0}, 0};
         }
         memset(failedAddr, 0, sizeof(failedAddr));
+        lenFailed = 0;
         xSemaphoreGive(failedMutex);
         return true;
     }
@@ -167,7 +178,35 @@ bool messageAcknowledge::resetFailed() {
 
 int messageAcknowledge::lengthFailed() {
     if (xSemaphoreTake(failedMutex, portMAX_DELAY) == pdTRUE) {
+        int len = lenFailed;
         xSemaphoreGive(failedMutex);
-        return lenFailed;
+        return len;
+    }
+}
+
+bool messageAcknowledge::moveAllDelayedInWaiting() {
+    if (xSemaphoreTake(failedMutex, portMAX_DELAY) == pdTRUE && xSemaphoreTake(awaitingMutex, portMAX_DELAY) == pdTRUE) {
+        unsigned long currMillis = millis();
+        int i = 0;
+        int j;
+        while (i < lenWaiting && lenFailed < MAX_QUEUE_LEN) {
+            if (currMillis-timeRecieved[i] >= 10000) {
+                failedDelivery[lenFailed] = waitingResponse[i];
+                memcpy(failedAddr[lenFailed], waitingAddr[i], sizeof(failedAddr[0]));
+                lenFailed++;
+                for (j = 0; j < lenWaiting-1; j++) {
+                    waitingResponse[j] = waitingResponse[j+1];
+                    memcpy(waitingAddr[j], waitingAddr[j+1], sizeof(waitingAddr[j]));
+                }
+                waitingResponse[lenWaiting] = def_message_struct{{'\0'}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, 0, 0, {0,0,0,0,0,0}, 0};
+                memset(waitingAddr[lenWaiting], 0, sizeof(waitingAddr[lenWaiting]));
+                lenWaiting--;
+            } else {
+                i++;
+            }
+        }
+        xSemaphoreGive(failedMutex);
+        xSemaphoreGive(awaitingMutex);
+        return true;
     }
 }

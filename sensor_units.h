@@ -77,6 +77,7 @@ class messageAcknowledge {
         bool removeFromWaiting(unsigned int msgID);
         bool moveToFailed(unsigned int msgID);
         bool removedFromFailed(unsigned int msgID);
+        bool moveAllDelayedInWaiting();
         bool resetFailed();
         int lengthFailed();
     private:
@@ -84,6 +85,7 @@ class messageAcknowledge {
         SemaphoreHandle_t failedMutex = xSemaphoreCreateMutex();
         def_message_struct waitingResponse[MAX_QUEUE_LEN];
         uint8_t waitingAddr[MAX_QUEUE_LEN][6];
+        unsigned long timeRecieved[MAX_QUEUE_LEN];
         uint8_t lenWaiting = 0;
         def_message_struct failedDelivery[MAX_QUEUE_LEN];
         uint8_t failedAddr[MAX_QUEUE_LEN][6];

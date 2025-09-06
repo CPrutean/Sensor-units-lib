@@ -54,7 +54,9 @@ bool messageAcknowledge::moveToFailed(unsigned int msgID) {
         }
 
         memcpy(failedAddr[lenFailed], waitingAddr[i], sizeof(failedAddr[0]));
-        failedDelivery[lenFailed++] = msgToBeMoved;
+        failedDelivery[lenFailed] = msgToBeMoved;
+        timesFailed[lenFailed] = 0;
+        lenFailed++;
 
         int j;
         for (j = i; j < lenFailed-1; j++) {
@@ -108,16 +110,31 @@ bool messageAcknowledge::retryInFailed() {
         if (lenFailed <= 0) {
             return false;
         }
+        
         while(i < lenFailed) {
-            if (sendMessage(failedAddr[i], (uint8_t*)&failedDelivery[i], sizeof(def_message_struct)) == 0) {
+            int result = sendMessage(failedAddr[i], (uint8_t*)&failedDelivery[i], sizeof(def_message_struct));
+            if (result == 0 || (result == -1 && timesFailed[i]+1 == 3)) {
+                
+                if (result == -1) {
+                    timesFailed[i] = 0;
+                    char tempStr[MAX_MSG_LENGTH];
+                    snprintf(tempStr, sizeof(tempStr), "%s", "MESSAGE FAILED TO SEND: ");
+                    strncat(tempStr, failedDelivery[i].message, sizeof(tempStr)-strlen(tempStr)-1);
+                    stageForReturn(tempStr);
+                }
+                
                 for (j = i; j < lenFailed-1; j++) {
                     failedDelivery[j] = failedDelivery[j+1];
                     memcpy(failedAddr[j], failedAddr[j+1], sizeof(failedAddr[j]));
                 }
+
+                
                 failedDelivery[lenFailed] = def_message_struct{{'\0'}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, 0, 0, {0,0,0,0,0,0}, 0};
                 memset(failedAddr[lenFailed], 0, sizeof(failedAddr[lenFailed]));
+                timesFailed[lenFailed] = 0;
                 lenFailed--;
             } else {
+                timesFailed[i]++;
                 i++;
             }
         }

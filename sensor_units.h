@@ -88,6 +88,7 @@ class messageAcknowledge {
         unsigned long timeRecieved[MAX_QUEUE_LEN];
         uint8_t lenWaiting;
         def_message_struct failedDelivery[MAX_QUEUE_LEN];
+        uint8_t timesFailed[MAX_QUEUE_LEN];
         uint8_t failedAddr[MAX_QUEUE_LEN][6];
         uint8_t lenFailed;
 };
@@ -124,7 +125,6 @@ typedef struct communication_unit{
     uint8_t numOfSU;
     msg_queue *queue;
     messageAcknowledge *ack;
-    uint8_t msgDeliveryFails[6];
 };
  
 

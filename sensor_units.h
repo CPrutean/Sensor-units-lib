@@ -81,15 +81,15 @@ class messageAcknowledge {
         bool resetFailed();
         int lengthFailed();
     private:
-        SemaphoreHandle_t awaitingMutex = xSemaphoreCreateMutex();
-        SemaphoreHandle_t failedMutex = xSemaphoreCreateMutex();
+        SemaphoreHandle_t awaitingMutex;
+        SemaphoreHandle_t failedMutex;
         def_message_struct waitingResponse[MAX_QUEUE_LEN];
         uint8_t waitingAddr[MAX_QUEUE_LEN][6];
         unsigned long timeRecieved[MAX_QUEUE_LEN];
-        uint8_t lenWaiting = 0;
+        uint8_t lenWaiting;
         def_message_struct failedDelivery[MAX_QUEUE_LEN];
         uint8_t failedAddr[MAX_QUEUE_LEN][6];
-        uint8_t lenFailed = 0;
+        uint8_t lenFailed;
 };
 
 //Default struct used to hold the commands responses and the sensor associated with the commands and responses

@@ -210,3 +210,10 @@ bool messageAcknowledge::moveAllDelayedInWaiting() {
         return true;
     }
 }
+
+messageAcknowledge::messageAcknowledge() {
+    SemaphoreHandle_t awaitingMutex = xSemaphoreCreateMutex();
+    SemaphoreHandle_t failedMutex = xSemaphoreCreateMutex();
+    uint8_t lenWaiting = 0;
+    uint8_t lenFailed = 0;
+}

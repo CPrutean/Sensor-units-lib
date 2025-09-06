@@ -80,6 +80,7 @@ class messageAcknowledge {
         bool moveAllDelayedInWaiting();
         bool resetFailed();
         int lengthFailed();
+        messageAcknowledge();
     private:
         SemaphoreHandle_t awaitingMutex;
         SemaphoreHandle_t failedMutex;

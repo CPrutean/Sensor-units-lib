@@ -6,7 +6,7 @@ char piBufferSeper[] {'\n', '\0'};
 
 
 
-inline void stageForReturn(char* str) {
+void stageForReturn(char* str) {
     strncat(str, piBufferSeper, sizeof(str)-strlen(str));
     Serial.print(str);
 }
@@ -310,3 +310,4 @@ void respondPiRequest(const char* str) {
         }
     }
 }
+

@@ -54,6 +54,7 @@ typedef struct def_message_struct {
     uint8_t urgency;
     uint8_t numValues;
     uint8_t senderMac[6];
+    unsigned int msgID;
 } def_message_struct;
 
 //Default message queue class
@@ -65,6 +66,27 @@ class msg_queue {
         msg_queue();
     private:
         QueueHandle_t queueHandle;
+};
+
+class messageAcknowledge {
+    public:
+        bool addToWaiting(def_message_struct msg);
+        bool retryInFailed();
+        bool isFailedEmpty();
+        bool removeFromWaiting(unsigned int msgID);
+        bool moveToFailed(unsigned int msgID);
+        bool removedFromFailed(unsigned int msgID);
+        bool resetFailed();
+        int lengthFailed();
+    private:
+        SemaphoreHandle_t awaitingMutex = xSemaphoreCreateMutex();
+        SemaphoreHandle_t failedMutex = xSemaphoreCreateMutex();
+        def_message_struct waitingResponse[MAX_QUEUE_LEN];
+        uint8_t waitingAddr[MAX_QUEUE_LEN][6];
+        uint8_t lenWaiting = 0;
+        def_message_struct failedDelivery[MAX_QUEUE_LEN];
+        uint8_t failedAddr[MAX_QUEUE_LEN][6];
+        uint8_t lenFailed = 0;
 };
 
 //Default struct used to hold the commands responses and the sensor associated with the commands and responses
@@ -98,6 +120,8 @@ typedef struct communication_unit{
     char** names;
     uint8_t numOfSU;
     msg_queue *queue;
+    messageAcknowledge *ack;
+    uint8_t msgDeliveryFails[6];
 };
  
 
@@ -117,7 +141,8 @@ bool readFromEEPROM(char* nameDest, int destSize, def_message_struct *msg);
 int substring(const char* source, int start, int len, char* dest, int bufferLen);
 
 int handleMSG_CU(const def_message_struct &msgRecv);
-void handleRequestSU(char* cmd_passed, def_message_struct *response);
+void handleRequestSU(def_message_struct msgRecv, def_message_struct *response);
+void stageForReturn(char* str);
 
 void readAll(sensor_unit *SU);
 void clearEEPROM(); 

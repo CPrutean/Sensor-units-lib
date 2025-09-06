@@ -22,11 +22,66 @@ static inline bool is_zero_mac(const uint8_t mac[6]) {
 @return: returns -1 if it fails to send and 0 if it was succesful
 */
 int sendMessage(uint8_t brdcstAddr[6], uint8_t* msg, int len) {
-    esp_err_t result =  esp_now_send(brdcstAddr, msg, len);
-    if (result != ESP_OK) {
+    static unsigned int msgID = 0;
+    def_message_struct tempMsg;
+    memcpy(&tempMsg, msg, sizeof(def_message_struct));
+    tempMsg.msgID = msgID++;
+    esp_err_t result =  esp_now_send(brdcstAddr, (uint8_t*)&tempMsg, len);
+    if (com_unit_ptr != nullptr && result != ESP_OK) {
+        int i;
+        int j;
+        bool macFound = true;
+        for (i = 0; i < com_unit_ptr->numOfSU; i++) {
+            for (j = 0; j < 6; j++) {
+                if (com_unit_ptr->SU_ADDR[i][j] != brdcstAddr[j]) {
+                    macFound = false;
+                    break;
+                }
+            }
+            if (macFound) {
+                break;
+            }
+        }
+        if (i >= com_unit_ptr->numOfSU) {
+            #ifdef DEBUG
+            Serial.println("Invalid address passed");
+            #endif
+            return -1;
+        }
+        char tempStr[MAX_MSG_LENGTH];
+        snprintf(tempStr, sizeof(tempStr), "%s", "FAILED TO DELIVER MESSAGE: ");
+        strncat(tempStr, tempMsg.message, sizeof(tempStr)-strlen(tempStr));
+        stageForReturn(tempStr);
+        if (++(com_unit_ptr->msgDeliveryFails[i]) == 3) {
+            tempStr[0] = '\0';
+            com_unit_ptr->status[i] = OFFLINE;
+            snprintf(tempStr, MAX_MSG_LENGTH, "%s", "Status|OFFLINE");
+            char tempInd[3];
+            tempInd[0] = '|';
+            tempInd[1] = (char)(i+(int)'0');
+            tempInd[2] = '\0';
+            strncat(tempStr, tempInd, sizeof(tempStr)-strlen(tempStr));
+            stageForReturn(tempStr);
+        }
         return -1;
-    } else {
-        return 0;    
+    } else if (com_unit_ptr != nullptr && result == ESP_OK) {
+        int i;
+        int j;
+        bool macFound = true;
+        for (i = 0; i < com_unit_ptr->numOfSU; i++) {
+            for (j = 0; j < 6; j++) {
+                if (com_unit_ptr->SU_ADDR[i][j] != brdcstAddr[j]) {
+                    macFound = false;
+                    break;
+                }
+            }
+            if (macFound) {
+                break;
+            }
+        }
+        com_unit_ptr->msgDeliveryFails[i] = 0;
+        com_unit_ptr->status[i] = ONLINE;
+        return 0;
     }
 }
 

@@ -205,7 +205,7 @@ brief: handle messages passed to it and commands
 param cmd_passed: the string commmand passed to it
 param *response: the default message struct to modify
 */
-void handleRequestSU(char* cmd_passed, def_message_struct *response) {
+void handleRequestSU(def_message_struct msgRecv, def_message_struct *response) {
     memset(response, 0, sizeof(def_message_struct));
     response->message[0] = '\0';
     if (sens_unit_ptr == nullptr) {
@@ -218,9 +218,9 @@ void handleRequestSU(char* cmd_passed, def_message_struct *response) {
     bool completed = false;
     for (i = 0; i < NUM_OF_SENSORS; i++) {
         while (sensors[i].commands[j]!=NULL) {
-            if (strncmp(sensors[i].commands[j], cmd_passed, strlen(sensors[i].commands[j])) == 0) {
+            if (strncmp(sensors[i].commands[j], msgRecv.message, strlen(sensors[i].commands[j])) == 0) {
                 response->strlen = snprintf(response->message, MAX_MSG_LENGTH, "%s", sensors[i].responses[j]);
-                handleSensorRequests(sensors[i].sensor, response, j, cmd_passed);
+                handleSensorRequests(sensors[i].sensor, response, j, msgRecv.message);
                 completed = true;
                 break;
             }
@@ -236,5 +236,6 @@ void handleRequestSU(char* cmd_passed, def_message_struct *response) {
         response->message[0] = '\0';
         response->strlen = snprintf(response->message, MAX_MSG_LENGTH, "%s", "FAILED TO FIND REQUESTED VALUES");
     }
+    response->msgID = msgRecv.msgID;
     sendMessage(sens_unit_ptr->CU_ADDR, (uint8_t*)response, sizeof(*response));
 }

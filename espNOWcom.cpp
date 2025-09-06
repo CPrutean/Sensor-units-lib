@@ -28,6 +28,7 @@ int sendMessage(uint8_t brdcstAddr[6], uint8_t* msg, int len) {
     tempMsg.msgID = msgID++;
     esp_err_t result =  esp_now_send(brdcstAddr, (uint8_t*)&tempMsg, len);
     if (com_unit_ptr != nullptr && result != ESP_OK) {
+        com_unit_ptr->ack->addToFailed(tempMsg, brdcstAddr);
         int i;
         int j;
         bool macFound = true;
@@ -65,6 +66,7 @@ int sendMessage(uint8_t brdcstAddr[6], uint8_t* msg, int len) {
         }
         return -1;
     } else if (com_unit_ptr != nullptr && result == ESP_OK) {
+        com_unit_ptr->ack->addToWaiting(tempMsg, brdcstAddr);
         int i;
         int j;
         bool macFound = true;
@@ -83,6 +85,7 @@ int sendMessage(uint8_t brdcstAddr[6], uint8_t* msg, int len) {
         com_unit_ptr->status[i] = ONLINE;
         return 0;
     }
+    return 0;
 }
 
 /*

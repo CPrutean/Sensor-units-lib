@@ -144,6 +144,15 @@ bool messageAcknowledge::removedFromFailed(unsigned int msgID) {
     }
 }
 
+bool messageAcknowledge::addToFailed(def_message_struct msg, uint8_t addr[6]) {
+    if (xSemaphoreTake(failedMutex, portMAX_DELAY) == pdTRUE) {
+        failedDelivery[lenFailed] = msg;
+        memcpy(failedAddr[lenFailed++], addr, sizeof(failedAddr[lenFailed]));
+        xSemaphoreGive(failedMutex);
+        return true;
+    }
+}
+
 bool messageAcknowledge::resetFailed() {
     if (xSemaphoreTake(failedMutex, portMAX_DELAY) == pdTRUE) {
         int i;

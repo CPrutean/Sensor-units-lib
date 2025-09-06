@@ -70,7 +70,8 @@ class msg_queue {
 
 class messageAcknowledge {
     public:
-        bool addToWaiting(def_message_struct msg);
+        bool addToWaiting(def_message_struct msg, uint8_t addr[6]);
+        bool addToFailed(def_message_struct msg, uint8_t addr[6]);
         bool retryInFailed();
         bool isFailedEmpty();
         bool removeFromWaiting(unsigned int msgID);

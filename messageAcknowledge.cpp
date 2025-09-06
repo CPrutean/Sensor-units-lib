@@ -122,7 +122,7 @@ bool messageAcknowledge::retryInFailed() {
                     strncat(tempStr, failedDelivery[i].message, sizeof(tempStr)-strlen(tempStr)-1);
                     stageForReturn(tempStr);
                 }
-                
+
                 for (j = i; j < lenFailed-1; j++) {
                     failedDelivery[j] = failedDelivery[j+1];
                     memcpy(failedAddr[j], failedAddr[j+1], sizeof(failedAddr[j]));

@@ -63,8 +63,8 @@ bool messageAcknowledge::moveToFailed(unsigned int msgID) {
         }
 
         memset(waitingAddr[lenWaiting], 0, sizeof(waitingAddr[lenWaiting]));
-        waitingResponse[lenWaiting--] = def_message_struct{{'\0'}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, 0, 0, {0,0,0,0,0,0}, 0};
-
+        waitingResponse[lenWaiting] = def_message_struct{{'\0'}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, 0, 0, {0,0,0,0,0,0}, 0};
+        lenWaiting--;
         xSemaphoreGive(awaitingMutex);
         xSemaphoreGive(failedMutex);
         return true;
@@ -94,8 +94,8 @@ bool messageAcknowledge::removeFromWaiting(unsigned int msgID) {
         }
         memset(waitingAddr[lenWaiting], 0, sizeof(waitingAddr[lenWaiting]));
         timeRecieved[lenWaiting] = 0;
-        waitingResponse[lenWaiting--] = def_message_struct{{'\0'}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, 0, 0, {0,0,0,0,0,0}, 0};
-
+        waitingResponse[lenWaiting] = def_message_struct{{'\0'}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, 0, 0, {0,0,0,0,0,0}, 0};
+        lenWaiting--;
         xSemaphoreGive(awaitingMutex);
         return true;
     }
@@ -147,8 +147,8 @@ bool messageAcknowledge::removedFromFailed(unsigned int msgID) {
             memcpy(failedAddr[j], failedAddr[j+1], sizeof(failedAddr[j]));
         }
         failedDelivery[lenFailed] = def_message_struct{{'\0'}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, 0, 0, {0,0,0,0,0,0}, 0};
-        memset(failedAddr[lenFailed--], 0, sizeof(failedAddr[lenFailed]));
-
+        memset(failedAddr[lenFailed], 0, sizeof(failedAddr[lenFailed]));
+        lenFailed--;
         xSemaphoreGive(failedMutex);
         return true;
     }

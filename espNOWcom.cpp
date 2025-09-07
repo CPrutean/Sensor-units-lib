@@ -29,12 +29,7 @@ int sendMessage(uint8_t brdcstAddr[6], uint8_t* msg, int len) {
         tempMsg.msgID = msgID++;
     }
     esp_err_t result =  esp_now_send(brdcstAddr, (uint8_t*)&tempMsg, len);
-    if (com_unit_ptr != nullptr && result != ESP_OK) {
-        #ifdef DEBUG
-        Serial.println("Added message to failed to send messages");
-        #endif
-        com_unit_ptr->ack->addToFailed(tempMsg, brdcstAddr);
-    } else if (com_unit_ptr != nullptr && result == ESP_OK) {
+    if (com_unit_ptr != nullptr && result == ESP_OK) {
         #ifdef DEBUG
         Serial.println("Added message to waiting");
         #endif

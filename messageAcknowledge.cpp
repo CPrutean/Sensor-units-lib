@@ -75,6 +75,9 @@ bool messageAcknowledge::moveToFailed(unsigned int msgID) {
 }
 
 bool messageAcknowledge::removeFromWaiting(unsigned int msgID) {
+    #ifdef DEBUG
+    Serial.println("Attempting to remove from waiting queue");
+    #endif
     if (xSemaphoreTake(awaitingMutex, portMAX_DELAY) == pdTRUE) {
         int i;
         bool msgFound = false;
@@ -109,34 +112,59 @@ bool messageAcknowledge::retryInFailed() {
         int j;
         int i = 0;
         if (lenFailed <= 0) {
+            xSemaphoreGive(failedMutex);
             return false;
         }
         
-        while(i < lenFailed) {
-            int result = sendMessage(failedAddr[i], (uint8_t*)&failedDelivery[i], sizeof(def_message_struct));
-            if (result == 0 || (result == -1 && timesFailed[i]+1 == 3)) {
-                
-                if (result == -1) {
-                    timesFailed[i] = 0;
-                    char tempStr[MAX_MSG_LENGTH];
-                    snprintf(tempStr, sizeof(tempStr), "%s", "MESSAGE FAILED TO SEND: ");
-                    strncat(tempStr, failedDelivery[i].message, sizeof(tempStr)-strlen(tempStr)-1);
-                    stageForReturn(tempStr);
+        for (i = 0; i < lenFailed; i++) {
+            timesFailed[i]++;
+            if (timesFailed[i] > 3) {
+                char tempStr[MAX_MSG_LENGTH];
+                tempStr[0] = '\0';
+                snprintf(tempStr, sizeof(tempStr), "%s", "MESSAGE FAILED TO SEND: ");
+                strncat(tempStr, failedDelivery[i].message, sizeof(tempStr)-strlen(tempStr)-1);
+                stageForReturn(tempStr);
+                tempStr[0] = '\0';
+
+                int k;
+                bool macFound = true;
+                for (j = 0; j < com_unit_ptr->numOfSU; j++) {
+                    macFound = true;
+                    for (k = 0; k < 6; k++) {
+                        if (failedAddr[i][k] != com_unit_ptr->SU_ADDR[j][k]) {
+                            macFound = false;
+                            break;
+                        }
+                    }
+                    if (macFound) {
+                        break;
+                    }
                 }
+
+                if (!macFound) {
+                    stageForReturn("Couldnt find mac when checking for com_unit_ptr index");
+                    return false;
+                }
+
+                snprintf(tempStr, sizeof(tempStr), "%s", "Status|Offline|");
+                char indStr[2];
+                indStr[0] = (char)(j+(int)'0');
+                indStr[1] = '\0';
+
+                strncat(tempStr, indStr, sizeof(tempStr)-strlen(tempStr)-1);
+                stageForReturn(tempStr);
 
                 for (j = i; j < lenFailed-1; j++) {
                     failedDelivery[j] = failedDelivery[j+1];
                     memcpy(failedAddr[j], failedAddr[j+1], sizeof(failedAddr[j]));
+                    timesFailed[j] = timesFailed[j+1];
                 }
-
-                
                 failedDelivery[lenFailed] = def_message_struct{{'\0'}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, 0, 0, {0,0,0,0,0,0}, 0};
                 memset(failedAddr[lenFailed], 0, sizeof(failedAddr[lenFailed]));
                 timesFailed[lenFailed] = 0;
                 lenFailed--;
             } else {
-                timesFailed[i]++;
-                i++;
+                sendMessage(failedAddr[i], (uint8_t*)&failedDelivery[i], sizeof(def_message_struct));
             }
         }
         xSemaphoreGive(failedMutex);
@@ -145,6 +173,9 @@ bool messageAcknowledge::retryInFailed() {
 }
 
 bool messageAcknowledge::removedFromFailed(unsigned int msgID) {
+    #ifdef DEBUG
+    Serial.println("Attempting to remove from failed queue"); 
+    #endif
     if (xSemaphoreTake(failedMutex, portMAX_DELAY) == pdTRUE) {
         int i;
         bool msgFound = false;

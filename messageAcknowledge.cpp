@@ -21,6 +21,7 @@ bool messageAcknowledge::isFailedEmpty() {
         xSemaphoreGive(failedMutex);
         return cond;
     }
+    return false;
 }
 
 bool messageAcknowledge::moveToFailed(unsigned int msgID) {
@@ -229,8 +230,8 @@ bool messageAcknowledge::moveAllDelayedInWaiting() {
 }
 
 messageAcknowledge::messageAcknowledge() {
-    SemaphoreHandle_t awaitingMutex = xSemaphoreCreateMutex();
-    SemaphoreHandle_t failedMutex = xSemaphoreCreateMutex();
-    uint8_t lenWaiting = 0;
-    uint8_t lenFailed = 0;
+    awaitingMutex = xSemaphoreCreateMutex();
+    failedMutex = xSemaphoreCreateMutex();
+    lenWaiting = 0;
+    lenFailed = 0;
 }

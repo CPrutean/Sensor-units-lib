@@ -163,6 +163,7 @@ bool messageAcknowledge::retryInFailed() {
                 memset(failedAddr[lenFailed], 0, sizeof(failedAddr[lenFailed]));
                 timesFailed[lenFailed] = 0;
                 lenFailed--;
+                i--;
             } else {
                 sendMessage(failedAddr[i], (uint8_t*)&failedDelivery[i], sizeof(def_message_struct));
             }

@@ -19,7 +19,7 @@
 #define MAX_MSG_LENGTH 100
 #define MAX_CMD_LENGTH 32
 //Define this when you want to better read serial monitor output
-#define DEBUG 1
+//#define DEBUG 1
 
 #define EEPROM_SIZE 512
 #define MAX_READINGS 80

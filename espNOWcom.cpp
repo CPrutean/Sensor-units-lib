@@ -22,17 +22,23 @@ static inline bool is_zero_mac(const uint8_t mac[6]) {
 @return: returns -1 if it fails to send and 0 if it was succesful
 */
 int sendMessage(uint8_t brdcstAddr[6], uint8_t* msg, int len) {
-    static unsigned int msgID = 0;
+    static unsigned long msgID = 0;
     def_message_struct tempMsg;
     memcpy(&tempMsg, msg, sizeof(def_message_struct));
-    tempMsg.msgID = msgID++;
+    if (com_unit_ptr != nullptr) {
+        tempMsg.msgID = msgID++;
+    }
     esp_err_t result =  esp_now_send(brdcstAddr, (uint8_t*)&tempMsg, len);
     if (com_unit_ptr != nullptr && result != ESP_OK) {
+        #ifdef DEBUG
+        Serial.println("Added message to failed to send messages");
+        #endif
         com_unit_ptr->ack->addToFailed(tempMsg, brdcstAddr);
-        
     } else if (com_unit_ptr != nullptr && result == ESP_OK) {
+        #ifdef DEBUG
+        Serial.println("Added message to waiting");
+        #endif
         com_unit_ptr->ack->addToWaiting(tempMsg, brdcstAddr);
-        
     }
     return 0;
 }

@@ -203,6 +203,9 @@ int messageAcknowledge::lengthFailed() {
 }
 
 bool messageAcknowledge::moveAllDelayedInWaiting() {
+    #ifdef DEBUG
+    Serial.println("Movving delayed messages to failed");
+    #endif
     if (xSemaphoreTake(failedMutex, portMAX_DELAY) == pdTRUE && xSemaphoreTake(awaitingMutex, portMAX_DELAY) == pdTRUE) {
         unsigned long currMillis = millis();
         int i = 0;

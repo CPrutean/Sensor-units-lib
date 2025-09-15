@@ -8,7 +8,8 @@ char piBufferSeper[] {'\n', '\0'};
 
 void stageForReturn(char* str) {
     char tempStr[MAX_MSG_LENGTH];
-    memcpy(tempStr, str, strlen(str));
+    tempStr[0] = '\0';
+    strncpy(tempStr, str, sizeof(tempStr));
     strncat(tempStr, piBufferSeper, sizeof(tempStr)-strlen(tempStr));
     Serial.print(tempStr);
 }

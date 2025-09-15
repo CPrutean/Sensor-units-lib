@@ -146,7 +146,7 @@ int substring(const char* source, int start, int len, char* dest, int bufferLen)
 
 int handleMSG_CU(const def_message_struct &msgRecv);
 void handleRequestSU(def_message_struct msgRecv, def_message_struct *response);
-void stageForReturn(char* str);
+void stageForReturn(const char* str);
 
 void readAll(sensor_unit *SU);
 void clearEEPROM(); 

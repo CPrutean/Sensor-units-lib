@@ -237,20 +237,24 @@ void respondPiRequest(const char* str) {
     } else {
         int i;
         int j = 0;
-        bool commandFound = false;
+        bool sensor_found = false;
         for (i = 0; i < NUM_OF_SENSORS; i++) {
             j = 0;
             while (sensors[i].commands[j] != NULL) {
-                if (strncmp(keywords[0], sensors[i].commands[j], strlen(keywords[0])) == 0) {
-                    commandFound = true;
-                    break;
+                if (strncmp(sensors[i].commands[j], keywords[0], sizeof(sensors[i].commands[j])) == 0) {
+                    sensor_found = true;
                 }
                 j++;
             }
-            if (commandFound) {
+            if (sensor_found) {
                 break;
             }
         }
+        if (!sensor_found) {
+            stageForReturn("Sensor wasnt found for this command");
+            return;
+        }
+        
         sensor_type sensor = (sensor_type)i;
         //If we pass a command and are pulling from all available units then send them to every unit which contains the sensor and command which was found
         if (strncmp(keywords[1], "ALL", strlen("ALL")) == 0) {
@@ -259,23 +263,17 @@ void respondPiRequest(const char* str) {
 
             def_message_struct msg;
             memset(&msg, 0, sizeof(msg));
-
-            int k;
-            int l;
-            commandFound = false;
-            for (k = 0; k < com_unit_ptr->numOfSU; k++) {
-                for (l = 0; l < com_unit_ptr->SU_NUM_MODULES[k]; l++) {
-                    if (com_unit_ptr->SU_AVLBL_MODULES[k][l] == sensor) {
+            bool commandFound = false;
+            for (i = 0; i < com_unit_ptr->numOfSU; i++) {
+                for (j = 0; j < com_unit_ptr->SU_NUM_MODULES[i]; i++) {
+                    if (sensor == com_unit_ptr->SU_AVLBL_MODULES[i][j]) {
                         msg.message[0] = '\0';
-                        msg.strlen = snprintf(msg.message, MAX_MSG_LENGTH, "%s", keywords[0]);
-                        commandFound = true;
-                        break;
+                        msg.strlen = snprintf(msg.message, sizeof(msg.message), "%s", keywords[0]);
+                        sendMessage(com_unit_ptr->SU_ADDR[i], (uint8_t*)&msg.message, sizeof(msg));
                     }
                 }
-                if (commandFound) {
-                    break;
-                }
             }
+            
         } else if (keywords[1] != NULL && strncmp(keywords[1], "IND", strlen("IND")) == 0 && keywords[2] != NULL) { //Else we pass an index for a sensor unit to pull from
             int ind = 0;
             int pow = 1;
@@ -310,4 +308,3 @@ void respondPiRequest(const char* str) {
         }
     }
 }
-

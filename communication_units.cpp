@@ -193,7 +193,7 @@ void respondPiRequest(const char* str) {
         return;
     }
     //Case for pulling all available data from all available sensor unitsz
-    if (keywords[0] != NULL && keywords[1] != NULL && strncmp(keywords[0], "PULL", strlen("PULL")) == 0 && strncmp(keywords[1], "ALL", strlen("ALL")) == 0) {
+    if (keywords[0] != NULL && keywords[1] != NULL && strncmp(keywords[0], "PULL", strlen(keywords[0])) == 0 && strncmp(keywords[1], "ALL", strlen("ALL")) == 0) {
         int j;
         int k;
         int l = 0;
@@ -284,12 +284,10 @@ void respondPiRequest(const char* str) {
                 ind += ((int)keywords[2][i]-(int)'0') * pow;
                 pow *= 10;
             }
-            if (ind >= com_unit_ptr->numOfSU) {
+            if (ind > com_unit_ptr->numOfSU) {
                 stageForReturn("Invalid index passed please try again");
             }
-
             j = 0;            
-            sensor_type sensor = (sensor_type)i;
             bool hasSens = false;
             for (i = 0; i < com_unit_ptr->SU_NUM_MODULES[ind]; i++) {
                 if (com_unit_ptr->SU_AVLBL_MODULES[ind][i] == sensor) {

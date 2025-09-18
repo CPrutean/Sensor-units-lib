@@ -2,11 +2,11 @@
 
 const char *temp_sensor_cmds[] = {"PULL TEMPERATURE", "PULL HUMID", NULL};
 const char* temp_sensor_responses[] = {"TEMPERATURE", "HUMIDITY", NULL};
-const char* temp_sensor_values[] = {"C", "%", NULL};
+const char* temp_sensor_values[] = {"C\xC2", "%", NULL};
 
 const char* gps_sensor_cmds[] = {"PULL LOCATION",NULL};
 const char* gps_sensor_responses[] = {"LOCATION", NULL};
-const char* gps_sensor_values[] = {"°", NULL};
+const char* gps_sensor_values[] = {"\xC2", NULL};
 
 const char* sens_unit_msgs[] = {"PULL STATUS", "PULL SENS UNITS", "PULL NAME", "PUSH NAME", NULL};
 const char* sens_unit_response[] = {"Status", "Sens units", "Name", "Name set", NULL};

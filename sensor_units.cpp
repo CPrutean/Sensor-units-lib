@@ -136,7 +136,7 @@ void handleSensorRequests(sensor_type sensor, def_message_struct *msg, int ind, 
                 msg->strlen = snprintf(msg->message, MAX_MSG_LENGTH, "%s", "UNABLE TO FIND READING");
             }
             msg->value[0] = '\0';
-            strncpy(msg->value, sensors[sensor].values[0], sizeof(msg->value));
+            snprintf(msg->value, sizeof(msg->value), "%s", sensors[sensor].values[0]);
             msg->numValues = 1;
             break;
         case GPS:
@@ -145,7 +145,7 @@ void handleSensorRequests(sensor_type sensor, def_message_struct *msg, int ind, 
                 msg->values[0] = sens_unit_ptr->gps->location.lat();
                 msg->values[1] = sens_unit_ptr->gps->location.lng();
                 msg->value[0] = '\0';
-                strncpy(msg->value, sensors[sensor].values[0], sizeof(msg->value));
+                snprintf(msg->value, sizeof(msg->value), "%s", sensors[sensor].values[0]);
                 msg->numValues = 2;
             } else {
                 msg->message[0] = '\0';
@@ -157,11 +157,11 @@ void handleSensorRequests(sensor_type sensor, def_message_struct *msg, int ind, 
             if (ind == 0) {
                 determineStatus(msg);
                 msg->value[0] = '\0';
-                strncpy(msg->value, sensors[sensor].values[0], sizeof(msg->value));
+                snprintf(msg->value, sizeof(msg->value), "%s", sensors[sensor].values[0]);
             } else if (ind == 1) {
                 returnSensUnits(msg);
                 msg->value[0] = '\0';
-                strncpy(msg->value, sensors[sensor].values[1], sizeof(msg->value));
+                snprintf(msg->value, sizeof(msg->value), "%s", sensors[sensor].values[0]);
             } else if (ind == 2) {
                 msg->message[0] = '\0';
                 if (sens_unit_ptr->name[0] != '\0') {
@@ -174,7 +174,7 @@ void handleSensorRequests(sensor_type sensor, def_message_struct *msg, int ind, 
                     msg->strlen = snprintf(msg->message, MAX_MSG_LENGTH, "%s", "NAME WAS NULL PUSH A NAME TO THIS DEVICE");
                 }
                 msg->value[0] = '\0';
-                strncpy(msg->value, sensors[sensor].values[2], sizeof(msg->value));
+                snprintf(msg->value, sizeof(msg->value), "%s", sensors[sensor].values[0]);
             } else if (ind == 3) {
                 sens_unit_ptr->name[0] = '\0';
                 int len = strlen(cmd_passed);
@@ -198,7 +198,7 @@ void handleSensorRequests(sensor_type sensor, def_message_struct *msg, int ind, 
                     msg->strlen = snprintf(msg->message, MAX_MSG_LENGTH, "%s", "Name failed to set due to invalid command being sent");
                 }
                 msg->value[0] = '\0';
-                strncpy(msg->value, sensors[sensor].values[0], sizeof(msg->value));
+                snprintf(msg->value, sizeof(msg->value), "%s", sensors[sensor].values[0]);
             } else {
                 msg->message[0] = '\0';
                 msg->strlen = snprintf(msg->message, MAX_MSG_LENGTH, "%s", "INVALID INDEX PASSED");

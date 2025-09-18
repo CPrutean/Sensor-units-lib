@@ -55,6 +55,7 @@ typedef struct def_message_struct {
     uint8_t numValues;
     uint8_t senderMac[6];
     unsigned int msgID;
+    char value[10];
 } def_message_struct;
 
 //Default message queue class
@@ -98,6 +99,7 @@ class messageAcknowledge {
 typedef struct sensor_definition {
     const char** commands;
     const char** responses;
+    const char** values;
     sensor_type sensor;
     const char* name;
 };

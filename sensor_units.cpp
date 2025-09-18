@@ -129,14 +129,16 @@ void handleSensorRequests(sensor_type sensor, def_message_struct *msg, int ind, 
         case TEMP_AND_HUMID:
             if (sens_unit_ptr->dht_sensor != nullptr && ind == 0) {
                 msg->values[0] = sens_unit_ptr->dht_sensor->readTemperature();
+                 msg->value[0] = '\0';
+                snprintf(msg->value, sizeof(msg->value), "%s", sensors[sensor].values[0]);
             } else if (sens_unit_ptr->dht_sensor != nullptr && ind == 1) {
                 msg->values[0] = sens_unit_ptr->dht_sensor->readHumidity();
+                msg->value[0] = '\0';
+                snprintf(msg->value, sizeof(msg->value), "%s", sensors[sensor].values[1]);
             } else {
                 msg->message[0] = '\0';
                 msg->strlen = snprintf(msg->message, MAX_MSG_LENGTH, "%s", "UNABLE TO FIND READING");
             }
-            msg->value[0] = '\0';
-            snprintf(msg->value, sizeof(msg->value), "%s", sensors[sensor].values[0]);
             msg->numValues = 1;
             break;
         case GPS:

@@ -198,9 +198,6 @@ void respondPiRequest(const char* str) {
     }
     //Case for pulling all available data from all available sensor unitsz
     if (keywords[0] != NULL && keywords[1] != NULL && strncmp(keywords[0], "PULL", strlen(keywords[0])) == 0 && strncmp(keywords[1], "ALL", strlen("ALL")) == 0) {
-        int j;
-        int k;
-        int l = 0;
         def_message_struct msg;
         memset(&msg, 0, sizeof(msg));
         int i = 0;

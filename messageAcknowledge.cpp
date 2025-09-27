@@ -95,11 +95,11 @@ bool messageAcknowledge::removeFromWaiting(unsigned int msgID) {
         int j;
         for (j = i; j < lenWaiting-1; j++) {
             waitingResponse[j] = waitingResponse[j+1];
-            timeRecieved[j] = timeRecieved[j+1];
+            timeReceived[j] = timeReceived[j+1];
             memcpy(waitingAddr[j], waitingAddr[j+1], sizeof(waitingAddr[j]));
         }
         memset(waitingAddr[lenWaiting], 0, sizeof(waitingAddr[lenWaiting]));
-        timeRecieved[lenWaiting] = 0;
+        timeReceived[lenWaiting] = 0;
         waitingResponse[lenWaiting] = def_message_struct{{'\0'}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, 0, 0, {0,0,0,0,0,0}, 0};
         lenWaiting--;
         xSemaphoreGive(awaitingMutex);
@@ -236,14 +236,14 @@ int messageAcknowledge::lengthFailed() {
 
 bool messageAcknowledge::moveAllDelayedInWaiting() {
     #ifdef DEBUG
-    Serial.println("Movving delayed messages to failed");
+    Serial.println("Moving delayed messages to failed");
     #endif
     if (xSemaphoreTake(failedMutex, portMAX_DELAY) == pdTRUE && xSemaphoreTake(awaitingMutex, portMAX_DELAY) == pdTRUE) {
         unsigned long currMillis = millis();
         int i = 0;
         int j;
         while (i < lenWaiting && lenFailed < MAX_QUEUE_LEN) {
-            if (currMillis-timeRecieved[i] >= 10000) {
+            if (currMillis-timeReceived[i] >= 10000) {
                 failedDelivery[lenFailed] = waitingResponse[i];
                 memcpy(failedAddr[lenFailed], waitingAddr[i], sizeof(failedAddr[0]));
                 lenFailed++;

@@ -206,6 +206,34 @@ void handleSensorRequests(sensor_type sensor, def_message_struct *msg, int ind, 
                 msg->strlen = snprintf(msg->message, MAX_MSG_LENGTH, "%s", "INVALID INDEX PASSED");
             }
             break;
+        case (MOTION_SENSOR):
+            if (sens_unit_ptr != nullptr) {
+                int i;
+                bool found = false;
+                for (i = 0; i < sens_unit_ptr->moduleCount; i++) {
+                    if (sens_unit_ptr->modules[i] == MOTION_SENSOR) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    msg->message[0] = '\0';
+                    msg->strlen = snprintf(msg->message, sizeof(def_message_struct), "%s","Unable to find motion sensor unit in available modules"); 
+                    return;
+                }
+                
+            } else if (sens_unit_ptr->motion == nullptr) {
+                msg->message[0] = '\0';
+                msg->strlen = snprintf(msg->message, sizeof(def_message_struct), "%s", "Motion sensor pointer was never initialized");    
+                return;
+            } else if (sens_unit_ptr->motion->count() == 1) {
+                msg->message[0] = '\0';
+                msg->strlen = snprintf(msg->message, sizeof(def_message_struct), "%s", "Initialize only one motion sensor per PIR counter");    
+            }
+
+            //Motion sensor only has one value so in this case we can only pull onve value
+            msg->values[0] = sens_unit_ptr->motion->read();
+            break;
         default:
             msg->message[0] = '\0';
             msg->strlen = snprintf(msg->message, MAX_MSG_LENGTH, "%s", "INVALID SENSOR FOUND");

@@ -8,7 +8,7 @@ bool messageAcknowledge::addToWaiting(def_message_struct msg, uint8_t addr[6]) {
             return false;
         }
         memcpy(waitingAddr[lenWaiting], addr, sizeof(waitingAddr[0]));
-        timeRecieved[lenWaiting] = millis();
+        timeReceived[lenWaiting] = millis();
         waitingResponse[lenWaiting++] = msg;
         xSemaphoreGive(awaitingMutex);
         return true;

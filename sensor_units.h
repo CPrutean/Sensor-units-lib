@@ -14,6 +14,7 @@
 #include <cstring>
 #include <cstdio>
 #include <cstdlib>
+#include <PIR.h>
 
 #define GPS_BAUD 9600
 #define MAX_MSG_LENGTH 100
@@ -39,10 +40,13 @@ extern const char* gps_sensor_responses[];
 extern const char* sens_unit_msgs[];
 extern const char* sens_unit_response[];
 
+extern const char* motion_unit_msgs[];
+extern const char* motion_unit_response[]; 
+
 extern const char* sens_unit_strings[];
 extern const char* status_strings[];
 
-enum sensor_type {TEMP_AND_HUMID = 0, GPS, BASE_SENS_UNIT, NUM_OF_SENSORS};
+enum sensor_type {TEMP_AND_HUMID = 0, GPS, MOTION_SENSOR, BASE_SENS_UNIT, NUM_OF_SENSORS};
 enum sensor_unit_status {ONLINE = 0, ERROR, OFFLINE};
 
 
@@ -87,7 +91,7 @@ class messageAcknowledge {
         SemaphoreHandle_t failedMutex;
         def_message_struct waitingResponse[MAX_QUEUE_LEN];
         uint8_t waitingAddr[MAX_QUEUE_LEN][6];
-        unsigned long timeRecieved[MAX_QUEUE_LEN];
+        unsigned long timeReceived[MAX_QUEUE_LEN];
         uint8_t lenWaiting;
         def_message_struct failedDelivery[MAX_QUEUE_LEN];
         uint8_t timesFailed[MAX_QUEUE_LEN];
@@ -112,6 +116,7 @@ typedef struct sensor_unit{
     DHT *dht_sensor;
     HardwareSerial *gpsSerial;
     TinyGPSPlus *gps;
+    PIR* motion;
     uint8_t CU_ADDR[6];
     msg_queue *queue;
     char name[MAX_NAME_LEN];

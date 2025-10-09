@@ -1,0 +1,344 @@
+#include "Arduino.h"
+#include "freertos/portmacro.h"
+#include "sensor_units.h"
+
+// Make sure to iterate through the full list and nullterminate all the strings
+// at 0 to signify empty values and assign the message id to 0xFF to signify
+// null value
+bool messageAcknowledge::addToWaiting(def_message_struct msg, uint8_t addr[6],
+                                      bool nested) {
+  bool condition;
+  if (!nested) {
+    condition = xSemaphoreTake(awaitingMutex, portMAX_DELAY) == pdTRUE;
+  } else {
+    condition = true;
+  }
+
+  if (!condition) {
+#ifdef DEBUG
+    Serial.println("Mutex failed to acquire");
+#endif
+    return false;
+  }
+
+  if (lenWaiting >= MAX_QUEUE_LEN - 1) {
+#ifdef DEBUG
+    Serial.println("Waiting queue was to large");
+#endif
+    xSemaphoreGive(awaitingMutex);
+    return false;
+  }
+
+  memcpy(waitingAddr[lenWaiting], addr, sizeof(waitingAddr[0]));
+  timeReceived[lenWaiting] = millis();
+  waitingResponse[lenWaiting++] = msg;
+  xSemaphoreGive(awaitingMutex);
+  return true;
+}
+
+bool messageAcknowledge::isFailedEmpty(bool nested) {
+  if (nested) {
+    return lenFailed <= 0;
+  } else if (xSemaphoreTake(failedMutex, portMAX_DELAY) == pdTRUE) {
+    bool cond = lenFailed <= 0;
+    xSemaphoreGive(failedMutex);
+    return cond;
+  }
+  return false;
+}
+// Do not pass nested=true as a call if the failedMutex isnt claimed
+bool messageAcknowledge::moveToFailed(unsigned int msgID, bool nested) {
+  bool condition;
+  if (!nested) {
+    condition = xSemaphoreTake(failedMutex, portMAX_DELAY) == pdTRUE &&
+                xSemaphoreTake(awaitingMutex, portMAX_DELAY) == pdTRUE;
+  } else {
+    condition = true;
+  }
+
+  if (!condition) {
+#ifdef DEBUG
+    Serial.println("Failed to acquire mutex for message queues");
+#endif
+  }
+
+  if (lenFailed >= MAX_QUEUE_LEN) {
+    this->resetFailed(true);
+  }
+
+  bool msgFound = false;
+  int i;
+  for (i = 0; i < lenWaiting; i++) {
+    if (waitingResponse[i].message[0] != '\0' &&
+        waitingResponse[i].msgID == msgID) {
+      msgFound = true;
+      break;
+    }
+  }
+  def_message_struct msgToBeMoved;
+  msgToBeMoved = waitingResponse[i];
+
+  if (!msgFound) {
+    xSemaphoreGive(failedMutex);
+    xSemaphoreGive(awaitingMutex);
+    return false;
+  }
+  uint8_t addr[6];
+  def_message_struct msg;
+  memcpy(addr, failedAddr[i], sizeof(addr));
+  memcpy(&msg, &failedDelivery[i], sizeof(def_message_struct));
+
+  this->removeFromWaiting(msg.msgID, true);
+  this->addToFailed(msg, addr, true);
+
+  xSemaphoreGive(awaitingMutex);
+  xSemaphoreGive(failedMutex);
+  return true;
+}
+
+bool messageAcknowledge::removeFromWaiting(unsigned int msgID, bool nested) {
+#ifdef DEBUG
+  Serial.println("Attempting to remove from waiting queue");
+#endif
+  // TODO finish writing all nested functionality
+  bool condition;
+  if (!nested) {
+    condition = xSemaphoreTake(awaitingMutex, portMAX_DELAY) == pdTRUE;
+  } else {
+    condition = true;
+  }
+  if (!condition) {
+#ifdef DEBUG
+    Serial.println("Failed to acquire mutex");
+#endif
+    return false;
+  }
+
+  int i;
+  bool msgFound = false;
+  for (i = 0; i < lenWaiting; i++) {
+    if (waitingResponse[i].msgID == msgID) {
+      msgFound = true;
+      break;
+    }
+  }
+
+  if (!msgFound) {
+#ifdef DEBUG
+    Serial.println("Message wasnt found when trying to remove");
+
+#endif
+    xSemaphoreGive(awaitingMutex);
+    return false;
+  }
+  int j;
+  for (j = i; j < lenWaiting - 1; j++) {
+    waitingResponse[j] = waitingResponse[j + 1];
+    timeReceived[j] = timeReceived[j + 1];
+    memcpy(waitingAddr[j], waitingAddr[j + 1], sizeof(waitingAddr[j]));
+  }
+  memset(waitingAddr[lenWaiting], 0, sizeof(waitingAddr[lenWaiting]));
+  timeReceived[lenWaiting] = 0;
+  waitingResponse[lenWaiting] = def_message_struct{
+      {'\0'}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, 0, 0, {0, 0, 0, 0, 0, 0}, 0};
+  lenWaiting--;
+  xSemaphoreGive(awaitingMutex);
+  return true;
+}
+
+bool messageAcknowledge::retryInFailed() {
+  if (xSemaphoreTake(failedMutex, portMAX_DELAY) == pdTRUE) {
+    int j;
+    int i = 0;
+    if (lenFailed <= 0) {
+      xSemaphoreGive(failedMutex);
+      return false;
+    }
+
+    for (i = 0; i < lenFailed; i++) {
+      timesFailed[i]++;
+      if (timesFailed[i] > 3) {
+        char tempStr[MAX_MSG_LENGTH];
+        tempStr[0] = '\0';
+        snprintf(tempStr, sizeof(tempStr), "%s", "MESSAGE FAILED TO SEND: ");
+        strncat(tempStr, failedDelivery[i].message,
+                sizeof(tempStr) - strlen(tempStr) - 1);
+        stageForReturn(tempStr);
+        tempStr[0] = '\0';
+
+        int k;
+        bool macFound = true;
+        for (j = 0; j < com_unit_ptr->numOfSU; j++) {
+          macFound = true;
+          for (k = 0; k < 6; k++) {
+            if (failedAddr[i][k] != com_unit_ptr->SU_ADDR[j][k]) {
+              macFound = false;
+              break;
+            }
+          }
+          if (macFound) {
+            break;
+          }
+        }
+
+        if (!macFound) {
+          stageForReturn(
+              "Couldnt find mac when checking for com_unit_ptr index");
+          return false;
+        }
+
+        snprintf(tempStr, sizeof(tempStr), "%s", "Status|Offline|");
+        char indStr[2];
+        indStr[0] = (char)(j + (int)'0');
+        indStr[1] = '\0';
+
+        strncat(tempStr, indStr, sizeof(tempStr) - strlen(tempStr) - 1);
+        stageForReturn(tempStr);
+        this->removedFromFailed(failedDelivery[i].msgID, true);
+      } else {
+        sendMessage(failedAddr[i], (uint8_t *)&failedDelivery[i],
+                    sizeof(def_message_struct));
+      }
+    }
+    xSemaphoreGive(failedMutex);
+    return true;
+  }
+}
+
+bool messageAcknowledge::removedFromFailed(unsigned int msgID, bool nested) {
+#ifdef DEBUG
+  Serial.println("Attempting to remove from failed queue");
+#endif
+  bool condition;
+  if (!nested) {
+    condition = xSemaphoreTake(failedMutex, portMAX_DELAY) == pdTRUE;
+  } else {
+    condition = true;
+  }
+  if (!condition) {
+#ifdef DEBUG
+    Serial.println("Failed to acquire Mutex");
+#endif
+    return false;
+  }
+
+  int i;
+  bool msgFound = false;
+  for (i = 0; i < lenFailed; i++) {
+    if (failedDelivery[i].msgID == msgID) {
+      msgFound = true;
+      break;
+    }
+  }
+  if (!msgFound) {
+    xSemaphoreGive(failedMutex);
+    return false;
+  }
+
+  int j;
+  for (j = i; j < lenFailed - 1; j++) {
+    failedDelivery[j] = failedDelivery[j + 1];
+    memcpy(failedAddr[j], failedAddr[j + 1], sizeof(failedAddr[j]));
+  }
+  failedDelivery[lenFailed] = def_message_struct{
+      {'\0'}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, 0, 0, {0, 0, 0, 0, 0, 0}, 0};
+  memset(failedAddr[lenFailed], 0, sizeof(failedAddr[lenFailed]));
+  lenFailed--;
+  xSemaphoreGive(failedMutex);
+  return true;
+}
+
+bool messageAcknowledge::addToFailed(def_message_struct msg, uint8_t addr[6],
+                                     bool nested) {
+  bool condition;
+  if (!nested) {
+    condition = xSemaphoreTake(failedMutex, portMAX_DELAY) == pdTRUE;
+  } else {
+    condition = true;
+  }
+  if (!condition) {
+#ifdef DEBUG
+    Serial.println("Failed to acquire Mutex");
+#endif
+    return false;
+  }
+  if (lenFailed >= MAX_QUEUE_LEN) {
+#ifdef DEBUG
+    Serial.println("Failed Queue was to big clearing queue");
+#endif
+    this->resetFailed(true);
+  }
+
+  failedDelivery[lenFailed] = msg;
+  memcpy(failedAddr[lenFailed++], addr, sizeof(failedAddr[lenFailed]));
+  xSemaphoreGive(failedMutex);
+  return true;
+}
+
+bool messageAcknowledge::resetFailed(bool nested) {
+  bool condition;
+  if (!nested) {
+    condition = xSemaphoreTake(failedMutex, portMAX_DELAY) == pdTRUE;
+  } else {
+    condition = true;
+  }
+
+  if (!condition) {
+#ifdef DEBUG
+    Serial.println("Failed to axquire Mutex");
+#endif
+    return false;
+  }
+
+  int i;
+  for (i = 0; i < MAX_QUEUE_LEN; i++) {
+    failedDelivery[i] = def_message_struct{
+        {'\0'}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, 0, 0, {0, 0, 0, 0, 0, 0}, 0};
+  }
+  memset(failedAddr, 0, sizeof(failedAddr));
+  lenFailed = 0;
+  xSemaphoreGive(failedMutex);
+  return true;
+}
+
+int messageAcknowledge::lengthFailed() {
+  if (xSemaphoreTake(failedMutex, portMAX_DELAY) == pdTRUE) {
+    int len = lenFailed;
+    xSemaphoreGive(failedMutex);
+    return len;
+  }
+}
+
+bool messageAcknowledge::moveAllDelayedInWaiting() {
+#ifdef DEBUG
+  Serial.println("Moving delayed messages to failed");
+#endif
+  if (xSemaphoreTake(failedMutex, portMAX_DELAY) == pdTRUE &&
+      xSemaphoreTake(awaitingMutex, portMAX_DELAY) == pdTRUE) {
+    unsigned long currMillis = millis();
+    int i = 0;
+    int j;
+    def_message_struct msg;
+    uint8_t addr[6];
+    while (i < lenWaiting) {
+      if (currMillis - timeReceived[i] >= 10000) {
+        memcpy(&msg, &waitingResponse[i], sizeof(def_message_struct));
+        memcpy(addr, waitingAddr, sizeof(addr));
+        this->removeFromWaiting(msg.msgID, true);
+        this->addToFailed(msg, addr, true);
+      } else {
+        i++;
+      }
+    }
+    xSemaphoreGive(failedMutex);
+    xSemaphoreGive(awaitingMutex);
+    return true;
+  }
+}
+
+messageAcknowledge::messageAcknowledge() {
+  awaitingMutex = xSemaphoreCreateMutex();
+  failedMutex = xSemaphoreCreateMutex();
+  lenWaiting = 0;
+  lenFailed = 0;
+}

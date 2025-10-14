@@ -1,14 +1,12 @@
 #ifndef __MY_SENSOR_LIB
 #define __MY_SENSOR_LIB
 
+#include "sensors_src/sensor_classes.h"
 #include <Arduino.h>
-#include <DHT.h>
 #include <EEPROM.h>
-#include <HardwareSerial.h>
 #include <LCD_I2C.h>
-#include <PIR.h>
-#include <TinyGPS++.h>
 #include <WiFi.h>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -54,16 +52,14 @@ enum sensor_unit_status { ONLINE = 0, ERROR, OFFLINE };
 
 // The default messages sent to and from the communication and sensor units
 typedef struct def_message_struct {
-  char message[MAX_MSG_LENGTH];
-  uint8_t strlen;
-  float values[4];
-  uint8_t urgency;
+  int command_ind;
+  sensor_type sensor_req;
+  float values[NUM_OF_SENSORS - 1];
   uint8_t numValues;
   uint8_t senderMac[6];
-  unsigned int msgID;
-  char value[10];
+  unsigned long msgID;
+  char message[30] = {'\0'};
 } def_message_struct;
-
 // Default message queue class
 class msg_queue {
 public:
@@ -118,15 +114,14 @@ typedef struct sensor_definition {
 // Default sensor unit struct which holds pointers to each object that could be
 // defined within it
 typedef struct sensor_unit {
-  sensor_type *modules;
+  sensor_type *modules = nullptr;
   uint8_t moduleCount;
-  DHT *dht_sensor;
-  HardwareSerial *gpsSerial;
-  TinyGPSPlus *gps;
-  PIR *motion;
+  temperature_sensor *temperatureSensor = nullptr;
+  gps_sensor *gps = nullptr;
+  motion_sensor *motionSensor = nullptr;
   uint8_t CU_ADDR[6];
-  msg_queue *queue;
-  char name[MAX_NAME_LEN];
+  msg_queue *queue = nullptr;
+  char name[MAX_NAME_LEN] = {'\0'};
 } sensor_unit;
 
 // default communication unit struct
@@ -137,8 +132,8 @@ typedef struct communication_unit {
   uint8_t SU_NUM_MODULES[6];
   char **names;
   uint8_t numOfSU;
-  msg_queue *queue;
-  messageAcknowledge *ack;
+  msg_queue *queue = nullptr;
+  messageAcknowledge *ack = nullptr;
 } communication_unit;
 
 // Default sensor definition struct

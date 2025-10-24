@@ -1,5 +1,11 @@
 #include "sensor_units.h"
 
+// Each sensor method will have the structure of returnType
+// methodHeader(def_message_struct *msgRecv) functionBody
+//
+// that way the structure for all method calls is simple and has the same
+// behavior however the method calls will be declared at runtime due to
+// sens_unit_ptr being a runtime declared variable
 const char *temp_sensor_cmds[] = {"PULL TEMPERATURE", "PULL HUMID", "PULL PREF",
                                   "PUSH PREF", NULL};
 const char *temp_sensor_responses[] = {"TEMPERATURE", "HUMIDITY", "PREF",
@@ -10,16 +16,16 @@ const char *gps_sensor_cmds[] = {"PULL LOCATION", NULL};
 const char *gps_sensor_responses[] = {"LOCATION", NULL};
 const char *gps_sensor_values[] = {"\xC2", NULL};
 
+const char *motion_unit_msgs[] = {"PULL MOTION", NULL};
+const char *motion_unit_response[] = {"MOTION DETECTED", NULL};
+const char *motion_unit_values[] = {"Movement", NULL};
+
 const char *sens_unit_msgs[] = {"PULL STATUS", "PULL SENS UNITS", "PULL NAME",
                                 "PUSH NAME", NULL};
 const char *sens_unit_response[] = {"Status", "Sens units", "Name", "Name set",
                                     NULL};
 const char *sens_unit_values[] = {"STATUS CODE", "SENSOR UNITS", "NAME", "CMD",
                                   NULL};
-
-const char *motion_unit_msgs[] = {"PULL MOTION", NULL};
-const char *motion_unit_response[] = {"MOTION DETECTED", NULL};
-const char *motion_unit_values[] = {"Movement", NULL};
 
 const char *sens_unit_strings[] = {"Temperature and humidity", "GPS",
                                    "Motion sensor", NULL};

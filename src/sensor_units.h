@@ -1,6 +1,9 @@
 #ifndef __MY_SENSOR_LIB
 #define __MY_SENSOR_LIB
 
+// Uncomment this header during testing
+// #define DEBUG
+
 #include "sensors_src/sensor_classes.h"
 #include <Arduino.h>
 #include <EEPROM.h>
@@ -12,16 +15,13 @@
 #include <cstring>
 #include <esp_now.h>
 #include <esp_wifi.h>
-
 #define GPS_BAUD 9600
 #define MAX_MSG_LENGTH 100
 #define MAX_CMD_LENGTH 32
-// Define this when you want to better read serial monitor output
-// #define DEBUG 1
 #define EEPROM_SIZE 512
 #define MAX_READINGS 80
 #define MAX_NAME_LEN 30
-
+#define MAX_CMDS 32
 #define MAX_QUEUE_LEN 25
 #define MAX_ESP32_PEERS 10
 
@@ -49,16 +49,17 @@ enum sensor_type {
   NUM_OF_SENSORS
 };
 enum sensor_unit_status { ONLINE = 0, ERROR, OFFLINE };
-
+enum def_message_struct_DATA_TYPES { DOUBLE_T, STRING_T };
 // The default messages sent to and from the communication and sensor units
 typedef struct def_message_struct {
   int command_ind;
   sensor_type sensor_req;
-  float values[NUM_OF_SENSORS - 1];
+  double values[NUM_OF_SENSORS - 1];
   uint8_t numValues;
   uint8_t senderMac[6];
   unsigned long msgID;
   char message[30] = {'\0'};
+  def_message_struct_DATA_TYPES type = DOUBLE_T;
 } def_message_struct;
 // Default message queue class
 class msg_queue {
@@ -111,39 +112,55 @@ typedef struct sensor_definition {
   const char *name;
 } sensor_definition;
 
-// Default sensor unit struct which holds pointers to each object that could be
-// defined within it
-typedef struct sensor_unit {
-  sensor_type *modules = nullptr;
-  uint8_t moduleCount;
-  temperature_sensor *temperatureSensor = nullptr;
-  gps_sensor *gps = nullptr;
-  motion_sensor *motionSensor = nullptr;
-  uint8_t CU_ADDR[6];
-  msg_queue *queue = nullptr;
-  char name[MAX_NAME_LEN] = {'\0'};
-} sensor_unit;
+class sensor_unit {
+public:
+  sensor_unit(sensor_type *modules = nullptr, uint8_t numSensors = 0,
+              char *nameIn = nullptr,
+              temperature_sensor *tempSensorIn = nullptr,
+              gps_sensor *gpsIn = nullptr, motion_sensor *motionIn = nullptr);
+  void sendMessage(def_message_struct msg);
+  void handleMsg(def_message_struct msgIn);
+  void initESP_NOW(uint8_t *cuAddrIn, const char *PMK_KEY, const char *LMK_KEY);
 
-// default communication unit struct
-typedef struct communication_unit {
-  uint8_t SU_ADDR[6][6];
-  sensor_unit_status status[6];
-  sensor_type SU_AVLBL_MODULES[6][NUM_OF_SENSORS - 1];
-  uint8_t SU_NUM_MODULES[6];
-  char **names;
-  uint8_t numOfSU;
-  msg_queue *queue = nullptr;
-  messageAcknowledge *ack = nullptr;
-} communication_unit;
+private:
+  sensor_type modules[NUM_OF_SENSORS - 1];
+  uint8_t moduleCount;
+  temperature_sensor tempSensor;
+  gps_sensor gpsSensor;
+  motion_sensor motionSensor;
+  uint8_t cuAddr[6];
+  msg_queue messageQueue;
+  char name[MAX_NAME_LEN];
+  esp_now_peer_info_t cuPeerInf;
+  bool nameFromEEPROM = false;
+};
+
+class communication_unit {
+public:
+  void sendMessage(def_message_struct msgOut, int SUIND);
+  communication_unit();
+  void handleMsg(def_message_struct msgIn);
+  void handleServerRequest(char *buffer, int sizeOfBuffer);
+  void initESP_NOW(uint8_t **suMac, uint8_t numOfSU, const char *PMK_KEY_IN,
+                   const char *LMK_KEY_IN);
+
+private:
+  uint8_t sens_unit_addresses[6][6];
+  uint8_t numOfSU = 0;
+  char names[6][6];
+  sensor_unit_status sensorUnitStatus[6];
+  sensor_type availableModules[6][NUM_OF_SENSORS - 1];
+  msg_queue messageQueue;
+  messageAcknowledge acknowledgementQueue;
+  esp_now_peer_info_t suPeerInf[6];
+  static unsigned long msgID;
+};
+
+extern communication_unit *com_unit_ptr;
+extern sensor_unit *sens_unit_ptr;
 
 // Default sensor definition struct
 extern sensor_definition sensors[];
-
-// These two pointers need to be defined in each .ino file to make the library
-// work succesfully
-extern sensor_unit *sens_unit_ptr;
-extern communication_unit *com_unit_ptr;
-
 void initCU(communication_unit *CU);
 
 bool initSU(sensor_unit *SU);
@@ -158,6 +175,11 @@ void stageForReturn(char *str);
 
 void readAll(sensor_unit *SU);
 void clearEEPROM();
-int sendMessage(uint8_t brdcstAddr[6], uint8_t *msg, int len);
-void respondPiRequest(const char *str);
+
+void onReceiveCBSU(uint8_t *macAddr, uint8_t *data, int size);
+void onReceiveCBCU(uint8_t *macAddr, uint8_t *data, int size);
+
+void onSendCBSU(uint8_t *macAddr, esp_now_send_status_t status);
+void onSendCBCU(uint8_t *macAddr, esp_now_send_status_t status);
+
 #endif

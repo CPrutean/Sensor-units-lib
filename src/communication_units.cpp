@@ -1,11 +1,12 @@
+#include "TinyGPS++.h"
 #include "esp_now.h"
 #include "sensor_units.h"
 
 // Py string word seperator
-char pyStrSeper[] = {'|', '\0'};
-char piBufferSeper[]{'\n', '\0'};
+char strSeper[] = {'|', '\0'};
+char bufferSeper[]{'\n', '\0'};
 
-void stageForReturn(char *str) {
+void stageForReturn(char *str, int buffSize) {
   char tempStr[MAX_MSG_LENGTH];
   tempStr[0] = '\0';
   strncpy(tempStr, str, sizeof(tempStr));
@@ -90,6 +91,20 @@ void communication_unit::initESP_NOW(uint8_t **suAddr, uint8_t numOfSU,
 
 // TODO implement proper message handling for sensor units and server side
 // requests
-void communication_unit::handleMsg(def_message_struct msgIn) {}
+void communication_unit::handleMsg(def_message_struct msgIn) {
+  char returnBuffer[1000];
+  snprintf(returnBuffer, sizeof(returnBuffer) - 1, "%s",
+           sensors[msgIn.sensor_req].responses[msgIn.command_ind]);
+  if (msgIn.type == STRING_T) {
+
+  } else if (msgIn.type == DOUBLE_T) {
+
+  } else {
+    snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1,
+             "%s", strSeper);
+    snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1,
+             "%s", "INVALID TYPE PASSED");
+  }
+}
 
 void communication_unit::handleServerRequest(char *buffer, int sizeOfBuffer) {}

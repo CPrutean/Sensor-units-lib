@@ -1,18 +1,8 @@
-#include "TinyGPS++.h"
-#include "esp_now.h"
 #include "sensor_units.h"
 
 // Py string word seperator
 char strSeper[] = {'|', '\0'};
 char bufferSeper[]{'\n', '\0'};
-
-void stageForReturn(char *str, int buffSize) {
-  char tempStr[MAX_MSG_LENGTH];
-  tempStr[0] = '\0';
-  strncpy(tempStr, str, sizeof(tempStr));
-  strncat(tempStr, piBufferSeper, sizeof(tempStr) - strlen(tempStr) - 1);
-  Serial.print(tempStr);
-}
 
 /*
 @brief: basic substring function to write a start of a function
@@ -34,13 +24,27 @@ int substring(const char *source, int start, int len, char *dest,
   return 0;
 }
 
-void communication_unit::sendMessage(def_message_struct msgOut, int SUIND) {
+// Only exists for overloading during testing
+#ifndef DEBUG
+void stageForReturn(char *buffer) { Serial.println(buffer); }
+#else
+void stageForReturn(char *buffer) { std::cout << buffer; }
+#endif
+
+/* @breif: Sends a message using ESP-NOW, sends it to the message confirmation
+ * system and returns the corresponding message ID of the message that was sent
+ * @param msgOut: the default message struct being sent out.
+ * @param SUIND: the index corresponding to the sensor unit being assigned
+ * @return: Returns the message ID corresponding to the message sent out.
+ */
+unsigned long communication_unit::sendMessage(def_message_struct msgOut,
+                                              int SUIND) {
   msgOut.msgID = this->msgID++;
   if (SUIND > this->numOfSU || SUIND < 0) {
 #ifdef DEBUG
-    Serial.println("INVALID SU IND");
+    stageForReturn("INVALID SU IND");
 #endif
-    return;
+    return -1;
   }
   esp_err_t status =
       esp_now_send(this->suPeerInf[SUIND].peer_addr, (uint8_t *)&msgOut,
@@ -51,14 +55,23 @@ void communication_unit::sendMessage(def_message_struct msgOut, int SUIND) {
   if (status != ESP_OK) {
     this->acknowledgementQueue.moveToFailed(msgOut.msgID);
   }
+  return this->msgID - 1;
 }
 
+// breif: default constructor for the communication unit
 communication_unit::communication_unit() {
   this->msgID = 0;
   this->acknowledgementQueue = messageAcknowledge();
   this->messageQueue = msg_queue();
 }
 
+/* breif: initializes ESP-NOW with valid encryption and sensor unit addresses.
+ * param suAddr: a 2D array consisting of individual mac addresses for sensor
+ * units param numOfSU: the amount of sensor units being added param PMK_KEY_IN:
+ * a 16 byte PMK key used for setting up encryption param LMK_KEY_IN: a 16 byte
+ * array used for initializing encryption
+ *
+ * */
 void communication_unit::initESP_NOW(uint8_t **suAddr, uint8_t numOfSU,
                                      const char *PMK_KEY_IN,
                                      const char *LMK_KEY_IN) {
@@ -88,23 +101,99 @@ void communication_unit::initESP_NOW(uint8_t **suAddr, uint8_t numOfSU,
   esp_now_register_recv_cb(esp_now_recv_cb_t(onReceiveCBCU));
   esp_now_register_send_cb(esp_now_send_cb_t(onSendCBCU));
 }
-
-// TODO implement proper message handling for sensor units and server side
-// requests
+/* breif: handles messages coming in from sensor units and returns the
+ * information back to the server that the communication unit is attached to via
+ * UART param msgIn: The message that is being returned back to the server
+ *
+ * */
 void communication_unit::handleMsg(def_message_struct msgIn) {
   char returnBuffer[1000];
   snprintf(returnBuffer, sizeof(returnBuffer) - 1, "%s",
            sensors[msgIn.sensor_req].responses[msgIn.command_ind]);
+
+  snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1, "%s",
+           strSeper);
   if (msgIn.type == STRING_T) {
-
-  } else if (msgIn.type == DOUBLE_T) {
-
+    snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1,
+             "%s", msgIn.message);
+  } else if (msgIn.type == DOUBLE_T && msgIn.sensor_req != BASE_SENS_UNIT &&
+             msgIn.command_ind != 0 && msgIn.command_ind != 1) {
+    for (uint8_t i = 0; i < msgIn.numValues; i++) {
+      snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1,
+               "%f", msgIn.values[i]);
+      snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1,
+               "%s", strSeper);
+    }
+  } else if (msgIn.sensor_req == BASE_SENS_UNIT &&
+             msgIn.command_ind == 0) { // Pull status
+    snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1,
+             "%s", status_strings[static_cast<int>(msgIn.values[0])]);
+  } else if (msgIn.sensor_req == BASE_SENS_UNIT &&
+             msgIn.command_ind == 1) { // Pull sens_units
+    for (uint8_t i = 0; i < msgIn.numValues; i++) {
+      snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1,
+               "%s", sens_unit_strings[static_cast<int>(msgIn.values[i])]);
+      snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1,
+               "%s", strSeper);
+    }
   } else {
     snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1,
              "%s", strSeper);
     snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1,
              "%s", "INVALID TYPE PASSED");
   }
-}
+  snprintf(returnBuffer, sizeof(returnBuffer) - 1, "%s",
+           sensors[msgIn.sensor_req].responses[msgIn.command_ind]);
 
-void communication_unit::handleServerRequest(char *buffer, int sizeOfBuffer) {}
+  snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1, "%s",
+           "MSG_ID:");
+  snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1, "%ld",
+           msgIn.msgID);
+
+  stageForReturn(returnBuffer);
+}
+/* breif: handles requests from the server and sends the requests to the
+ * corresponding sensor_unit special use case when initializing the system where
+ * the communication unit will return back all the sensor units and sensors
+ * available in the current firmware version
+ *
+ * param buffer: the string buffer used for the request
+ * param sizeOfBuffer: the length of the buffer being read from
+ */
+
+void communication_unit::handleServerRequest(char *buffer, int sizeOfBuffer) {
+  if (sizeOfBuffer < 3) {
+    stageForReturn("INVALID REQUEST");
+    return;
+  }
+  if (sizeOfBuffer > 4 && strncmp(buffer, "INIT", 4) == 0) {
+    def_message_struct msg;
+    msg.sensor_req = BASE_SENS_UNIT;
+    for (uint8_t i = 0; i < this->numOfSU;
+         i++) { // Only send the first 3 BASE_SENS_UNIT commands since we are
+                // just initializing the communication unit
+      for (uint8_t j = 0; j < 3; j++) {
+        msg.command_ind = j;
+        unsigned long id = sendMessage(msg, i);
+        char msgIdBuf[30] = "MSGID:";
+        snprintf(msgIdBuf, sizeof(msgIdBuf) - strlen(msgIdBuf) - 1, "%ld", id);
+        stageForReturn(msgIdBuf);
+      }
+    }
+  }
+
+  int SUIND = buffer[0];
+  sensor_type sensor = static_cast<sensor_type>(buffer[1]);
+  int cmdInd = buffer[2];
+
+  def_message_struct msgOut;
+  msgOut.command_ind = cmdInd;
+  msgOut.sensor_req = sensor;
+  if (sizeOfBuffer > 3) {
+    snprintf(msgOut.message, sizeof(msgOut.message), "%s", buffer + 3);
+  }
+  unsigned long msgId = this->sendMessage(msgOut, SUIND);
+  char msgIdBuf[30] = "MSGID:";
+  snprintf(msgIdBuf, sizeof(msgIdBuf) - strlen(msgIdBuf) - 1, "%ld", msgId);
+  stageForReturn(msgIdBuf);
+}

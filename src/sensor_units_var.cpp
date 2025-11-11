@@ -37,11 +37,8 @@ sensor_definition sensors[NUM_OF_SENSORS + 1] = {
      TEMP_AND_HUMID, sens_unit_strings[0]},
     {gps_sensor_cmds, gps_sensor_responses, gps_sensor_values, GPS,
      sens_unit_strings[1]},
-    {
-        motion_unit_msgs,
-        motion_unit_response,
-        motion_unit_values,
-    },
+    {motion_unit_msgs, motion_unit_response, motion_unit_values, MOTION_SENSOR,
+     sens_unit_strings[MOTION_SENSOR]},
     {sens_unit_msgs, sens_unit_response, sens_unit_values, BASE_SENS_UNIT,
      "DEFAULT"}};
 

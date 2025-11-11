@@ -1,5 +1,5 @@
-#include "sensor_classes.h"
-
+#include "gps_sensor.h"
+#ifndef DEBUG
 gps_sensor::gps_sensor(TinyGPSPlus &gps, HardwareSerial &gpsSerial, bool hasPPS,
                        uint8_t ppsPin) {
   this->gps = &gps;
@@ -30,3 +30,6 @@ bool gps_sensor::isValidInstance() {
 bool gps_sensor::isFunctioning() {
   return this->pullLat() != 0.0 && this->pullLong() != pullLong();
 }
+#else
+
+#endif

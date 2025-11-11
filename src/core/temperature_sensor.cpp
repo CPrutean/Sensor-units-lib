@@ -1,6 +1,8 @@
-#include "sensor_classes.h"
+#include "temperature_sensor.h"
 #include <cfloat>
 #include <cmath>
+
+#ifndef DEBUG
 temperature_sensor::temperature_sensor(TEMP_SENSOR_TYPE temp_sensor, DHT *dht) {
   this->type = temp_sensor;
   this->dht = dht;
@@ -42,3 +44,6 @@ bool temperature_sensor::isValidInstance() { return this->dht != nullptr; }
 bool temperature_sensor::isFunctioning() {
   return this->pullTemp() != NAN && this->pullHumid() != NAN;
 }
+#else
+
+#endif

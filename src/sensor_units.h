@@ -1,10 +1,12 @@
 #ifndef __MY_SENSOR_LIB
 #define __MY_SENSOR_LIB
 
-// Uncomment this header during testing
-// #define DEBUG
-
-#include "sensors_src/sensor_classes.h"
+// Uncomment this header when compiling tests
+// #define DEBUG 0
+#include "core/gps_sensor.h"
+#include "core/motion_sensor.h"
+#include "core/temperature_sensor.h"
+#ifndef DEBUG
 #include <Arduino.h>
 #include <EEPROM.h>
 #include <LCD_I2C.h>
@@ -15,6 +17,8 @@
 #include <cstring>
 #include <esp_now.h>
 #include <esp_wifi.h>
+#endif
+
 #define GPS_BAUD 9600
 #define MAX_MSG_LENGTH 100
 #define MAX_CMD_LENGTH 32
@@ -56,7 +60,6 @@ typedef struct def_message_struct {
   sensor_type sensor_req;
   double values[NUM_OF_SENSORS - 1];
   uint8_t numValues;
-  uint8_t senderMac[6];
   unsigned long msgID;
   char message[30] = {'\0'};
   def_message_struct_DATA_TYPES type = DOUBLE_T;
@@ -137,7 +140,7 @@ private:
 
 class communication_unit {
 public:
-  void sendMessage(def_message_struct msgOut, int SUIND);
+  unsigned long sendMessage(def_message_struct msgOut, int SUIND);
   communication_unit();
   void handleMsg(def_message_struct msgIn);
   void handleServerRequest(char *buffer, int sizeOfBuffer);

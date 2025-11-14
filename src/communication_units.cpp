@@ -1,9 +1,6 @@
 #include "sensor_units.h"
 
 // Py string word seperator
-char strSeper[] = {'|', '\0'};
-char bufferSeper[]{'\n', '\0'};
-
 /*
 @brief: basic substring function to write a start of a function
 @param source: the source string which we are taking from
@@ -24,12 +21,7 @@ int substring(const char *source, int start, int len, char *dest,
   return 0;
 }
 
-// Only exists for overloading during testing
-#ifndef DEBUG
 void stageForReturn(char *buffer) { Serial.println(buffer); }
-#else
-void stageForReturn(char *buffer) { std::cout << buffer; }
-#endif
 
 /* @breif: Sends a message using ESP-NOW, sends it to the message confirmation
  * system and returns the corresponding message ID of the message that was sent
@@ -37,33 +29,39 @@ void stageForReturn(char *buffer) { std::cout << buffer; }
  * @param SUIND: the index corresponding to the sensor unit being assigned
  * @return: Returns the message ID corresponding to the message sent out.
  */
-unsigned long communication_unit::sendMessage(def_message_struct msgOut,
-                                              int SUIND) {
+#ifdef DEBUG
+unsigned long int communication_unit::sendMessage(def_message_struct msgOut, int SUIND) {
   msgOut.msgID = this->msgID++;
   if (SUIND > this->numOfSU || SUIND < 0) {
-#ifdef DEBUG
     stageForReturn("INVALID SU IND");
-#endif
     return -1;
   }
+
   esp_err_t status =
       esp_now_send(this->suPeerInf[SUIND].peer_addr, (uint8_t *)&msgOut,
                    sizeof(def_message_struct));
-  this->acknowledgementQueue.addToWaiting(msgOut,
-                                          this->suPeerInf[SUIND].peer_addr);
+  this->acknowledgementQueue->addToWaiting(msgOut, SUIND); 
+
 
   if (status != ESP_OK) {
-    this->acknowledgementQueue.moveToFailed(msgOut.msgID);
+    this->acknowledgementQueue->moveToFailed(msgOut.msgID);
   }
   return this->msgID - 1;
 }
+#else //For testing will only return the index of the sensor unit
+unsigned long communication_unit::sendMessage(def_message_struct msgOut, int SUIND) {
+  return SUIND;
+}
+#endif
 
 // breif: default constructor for the communication unit
 communication_unit::communication_unit() {
   this->msgID = 0;
-  this->acknowledgementQueue = messageAcknowledge();
-  this->messageQueue = msg_queue();
+  this->acknowledgementQueue = new messageAcknowledge();
+  this->messageQueue = new msg_queue();
 }
+
+
 
 /* breif: initializes ESP-NOW with valid encryption and sensor unit addresses.
  * param suAddr: a 2D array consisting of individual mac addresses for sensor
@@ -106,49 +104,43 @@ void communication_unit::initESP_NOW(uint8_t **suAddr, uint8_t numOfSU,
  * UART param msgIn: The message that is being returned back to the server
  *
  * */
-void communication_unit::handleMsg(def_message_struct msgIn) {
-  char returnBuffer[1000];
-  snprintf(returnBuffer, sizeof(returnBuffer) - 1, "%s",
-           sensors[msgIn.sensor_req].responses[msgIn.command_ind]);
+char strSeper[] = {'|', '\0'};
+char bufferSeper[]{'\n', '\0'};
 
-  snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1, "%s",
-           strSeper);
+void communication_unit::handleMsg(def_message_struct msgIn, char* printbuffer) {
+  char returnBuffer[1000];
+  returnBuffer[0] = '\0';
+  snprintf(returnBuffer, sizeof(returnBuffer) - 1, "%s",sensors[msgIn.sensor_req].responses[msgIn.command_ind]);
+
+  snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1, "%s",strSeper);
   if (msgIn.type == STRING_T) {
-    snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1,
-             "%s", msgIn.message);
+    snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1, "%s", msgIn.message);
   } else if (msgIn.type == DOUBLE_T && msgIn.sensor_req != BASE_SENS_UNIT &&
              msgIn.command_ind != 0 && msgIn.command_ind != 1) {
     for (uint8_t i = 0; i < msgIn.numValues; i++) {
-      snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1,
-               "%f", msgIn.values[i]);
-      snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1,
-               "%s", strSeper);
+      snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1, "%f", msgIn.values[i]);
+      snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1, "%s", strSeper);
     }
-  } else if (msgIn.sensor_req == BASE_SENS_UNIT &&
-             msgIn.command_ind == 0) { // Pull status
-    snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1,
-             "%s", status_strings[static_cast<int>(msgIn.values[0])]);
-  } else if (msgIn.sensor_req == BASE_SENS_UNIT &&
-             msgIn.command_ind == 1) { // Pull sens_units
+  } else if (msgIn.sensor_req == BASE_SENS_UNIT && msgIn.command_ind == 0) { // Pull status
+    snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1, "%s", status_strings[static_cast<int>(msgIn.values[0])]);
+  } else if (msgIn.sensor_req == BASE_SENS_UNIT && msgIn.command_ind == 1) { // Pull sens_units
     for (uint8_t i = 0; i < msgIn.numValues; i++) {
-      snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1,
-               "%s", sens_unit_strings[static_cast<int>(msgIn.values[i])]);
-      snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1,
-               "%s", strSeper);
+      snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1, "%s", sens_unit_strings[static_cast<int>(msgIn.values[i])]);
+      snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1, "%s", strSeper);
     }
   } else {
-    snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1,
-             "%s", strSeper);
-    snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1,
-             "%s", "INVALID TYPE PASSED");
+    snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1, "%s", strSeper);
+    snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1, "%s", "INVALID TYPE PASSED");
   }
-  snprintf(returnBuffer, sizeof(returnBuffer) - 1, "%s",
-           sensors[msgIn.sensor_req].responses[msgIn.command_ind]);
+  snprintf(returnBuffer, sizeof(returnBuffer) - 1, "%s", sensors[msgIn.sensor_req].responses[msgIn.command_ind]);
 
-  snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1, "%s",
-           "MSG_ID:");
-  snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1, "%ld",
-           msgIn.msgID);
+  snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1, "%s", "MSG_ID:");
+  snprintf(returnBuffer, sizeof(returnBuffer) - strlen(returnBuffer) - 1, "%ld", msgIn.msgID);
+  #ifdef DEBUG
+  if (printbuffer != nullptr) { //Only use for testing
+    snprintf(printbuffer, sizeof(char)*1000, "%s", returnBuffer);
+  }
+  #endif
 
   stageForReturn(returnBuffer);
 }
@@ -161,7 +153,7 @@ void communication_unit::handleMsg(def_message_struct msgIn) {
  * param sizeOfBuffer: the length of the buffer being read from
  */
 
-void communication_unit::handleServerRequest(char *buffer, int sizeOfBuffer) {
+void communication_unit::handleServerRequest(char *buffer, int sizeOfBuffer, def_message_struct *msgPtr) {
   if (sizeOfBuffer < 3) {
     stageForReturn("INVALID REQUEST");
     return;
@@ -169,8 +161,7 @@ void communication_unit::handleServerRequest(char *buffer, int sizeOfBuffer) {
   if (sizeOfBuffer > 4 && strncmp(buffer, "INIT", 4) == 0) {
     def_message_struct msg;
     msg.sensor_req = BASE_SENS_UNIT;
-    for (uint8_t i = 0; i < this->numOfSU;
-         i++) { // Only send the first 3 BASE_SENS_UNIT commands since we are
+    for (uint8_t i = 0; i < this->numOfSU; i++) { // Only send the first 3 BASE_SENS_UNIT commands since we are
                 // just initializing the communication unit
       for (uint8_t j = 0; j < 3; j++) {
         msg.command_ind = j;
@@ -193,6 +184,11 @@ void communication_unit::handleServerRequest(char *buffer, int sizeOfBuffer) {
     snprintf(msgOut.message, sizeof(msgOut.message), "%s", buffer + 3);
   }
   unsigned long msgId = this->sendMessage(msgOut, SUIND);
+  #ifdef DEBUG //For debugging puproses only you may need access to the message that was generated
+  if (msgPtr != nullptr) {
+    msgPtr = &msgOut;
+  }
+   #endif
   char msgIdBuf[30] = "MSGID:";
   snprintf(msgIdBuf, sizeof(msgIdBuf) - strlen(msgIdBuf) - 1, "%ld", msgId);
   stageForReturn(msgIdBuf);

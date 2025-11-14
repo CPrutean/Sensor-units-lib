@@ -1,15 +1,11 @@
 #include "sensor_units.h"
-#include "esp_now.h"
-#include "sensors_src/gps_sensor.h"
-#include "sensors_src/motion_sensor.h"
-#include "sensors_src/temperature_sensor.h"
 
 /*
 @breif clears the EEPROM cache memory
 */
 void clearEEPROM() {
   if (!EEPROM.begin(EEPROM_SIZE)) {
-    Serial.println("Failed to initialize EEPROM for clearing.");
+    Serial.println("UNABLE TO OPEN EEPROM");
     return;
   }
   Serial.println("Clearing EEPROM...");
@@ -21,6 +17,7 @@ void clearEEPROM() {
   } else {
     Serial.println("Failed to commit EEPROM clear.");
   }
+
   EEPROM.end();
 }
 
@@ -75,7 +72,13 @@ bool readFromEEPROM(char *nameDest, int destSize, def_message_struct *msg) {
   EEPROM.end();
   return true;
 }
-
+/* @breif: Constructor for a valid sensor_unit
+ * @param *modules: input an array to determine what modules are available
+ * @param *numSensors: The number of sensors this sensor unit has available
+ * @param *nameIn: the name of the sensor unit being inputted
+ * @Param *tempSensorIn: the temperature sensor being inputted
+ *
+ */
 sensor_unit::sensor_unit(sensor_type *modules, uint8_t numSensors, char *nameIn,
                          temperature_sensor *tempSensorIn, gps_sensor *gpsIn,
                          motion_sensor *motionIn) {

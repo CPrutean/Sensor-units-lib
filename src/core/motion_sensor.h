@@ -1,6 +1,6 @@
-#include "motion_sensor.h"
 #include <PIR.h>
 
+#ifndef DEBUG
 class motion_sensor {
 public:
   motion_sensor(PIR &sensor);
@@ -10,19 +10,19 @@ public:
   bool isFunctioning();
 
 private:
-#ifndef DEBUG
   PIR *motion = nullptr;
+
+};
 #else
-  class motion_sensor {
+class motion_sensor {
   public:
     motion_sensor();
     float pullMotion();
     bool isValidInstance();
     bool isFunctioning();
-    bool flipState();
+    bool flipTestState();
 
   private:
-    bool functioningState;
-  }
+    bool isValid;
+  };
 #endif
-};

@@ -1,6 +1,6 @@
 #include <DHT.h>
 enum TEMP_SENSOR_TYPE { DHT_SENSOR, NONE };
-
+#ifndef DEBUG
 class temperature_sensor {
 public:
   float pullTemp();
@@ -15,9 +15,22 @@ public:
 private:
   char pref = 'C';
   TEMP_SENSOR_TYPE type;
-#ifndef DEBUG
   DHT *dht = nullptr;
-#else
-
-#endif
 };
+#else
+class temperature_sensor {
+  public:
+    float pullTemp();
+    float pullHumid();
+    char pullPref();
+    void pushPref(char pref);
+    temperature_sensor();
+    bool isValidInstance();
+    bool isFunctioning();
+    bool flipTestState();
+
+  private:
+    char pref = 'C';
+    bool isValid = true;
+};
+#endif

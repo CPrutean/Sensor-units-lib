@@ -31,5 +31,30 @@ bool gps_sensor::isFunctioning() {
   return this->pullLat() != 0.0 && this->pullLong() != pullLong();
 }
 #else
+gps_sensor::gps_sensor() {
+  this->isValid = true;
+}
+
+double gps_sensor::pullLat() {
+  return this->isValid ? 20.4 : 0.0;
+}
+
+double gps_sensor::pullLong() {
+  return this->isValid ? 23.1 : 0.0;
+}
+
+bool gps_sensor::isValidInstance() {
+  return this->isValid;
+}
+
+bool gps_sensor::isFunctioning() {
+  return this->isValid;
+}
+
+bool gps_sensor::changeTestState() {
+  this->isValid = !this->isValid;
+  return this->isValid;
+}
+
 
 #endif

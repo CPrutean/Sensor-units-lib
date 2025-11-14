@@ -17,7 +17,9 @@ public:
 private:
   TinyGPSPlus *gps = nullptr;
   HardwareSerial *gpsSerial = nullptr;
+};
 #else
+
 class gps_sensor {
 public:
   gps_sensor();
@@ -25,11 +27,10 @@ public:
   double pullLong();
   bool isValidInstance();
   bool isFunctioning();
-  bool changeTestState();
+  bool flipTestState();
 
 private:
   bool isValid;
-}
+};
 
 #endif
-};

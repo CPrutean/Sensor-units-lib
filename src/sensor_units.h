@@ -1,12 +1,10 @@
-#ifndef __MY_SENSOR_LIB
-#define __MY_SENSOR_LIB
-
+#pragma once
 // Uncomment this header when compiling tests
-// #define DEBUG 0
+ #define DEBUG 0
+
 #include "core/gps_sensor.h"
 #include "core/motion_sensor.h"
 #include "core/temperature_sensor.h"
-#ifndef DEBUG
 #include <Arduino.h>
 #include <EEPROM.h>
 #include <LCD_I2C.h>
@@ -17,7 +15,6 @@
 #include <cstring>
 #include <esp_now.h>
 #include <esp_wifi.h>
-#endif
 
 #define GPS_BAUD 9600
 #define MAX_MSG_LENGTH 100
@@ -60,10 +57,13 @@ typedef struct def_message_struct {
   sensor_type sensor_req;
   double values[NUM_OF_SENSORS - 1];
   uint8_t numValues;
-  unsigned long msgID;
+  unsigned long int msgID;
   char message[30] = {'\0'};
   def_message_struct_DATA_TYPES type = DOUBLE_T;
 } def_message_struct;
+
+
+
 // Default message queue class
 class msg_queue {
 public:
@@ -76,41 +76,14 @@ private:
   QueueHandle_t queueHandle;
 };
 
-class messageAcknowledge {
-public:
-  bool addToWaiting(def_message_struct msg, uint8_t addr[6],
-                    bool nested = false);
-  bool addToFailed(def_message_struct msg, uint8_t addr[6],
-                   bool nested = false);
-  bool retryInFailed();
-  bool isFailedEmpty(bool nested = false);
-  bool removeFromWaiting(unsigned int msgID, bool nested = false);
-  bool moveToFailed(unsigned int msgID, bool nested = false);
-  bool removedFromFailed(unsigned int msgID, bool nested = false);
-  bool moveAllDelayedInWaiting();
-  bool resetFailed(bool nested = false);
-  int lengthFailed();
-  messageAcknowledge();
 
-private:
-  SemaphoreHandle_t awaitingMutex;
-  SemaphoreHandle_t failedMutex;
-  def_message_struct waitingResponse[MAX_QUEUE_LEN];
-  uint8_t waitingAddr[MAX_QUEUE_LEN][6];
-  unsigned long timeReceived[MAX_QUEUE_LEN];
-  uint8_t lenWaiting;
-  def_message_struct failedDelivery[MAX_QUEUE_LEN];
-  uint8_t timesFailed[MAX_QUEUE_LEN];
-  uint8_t failedAddr[MAX_QUEUE_LEN][6];
-  uint8_t lenFailed;
-};
-
+class messageAcknowledge;
 // Default struct used to hold the commands responses and the sensor associated
 // with the commands and responses
 typedef struct sensor_definition {
   const char **commands;
   const char **responses;
-  const char **values;
+  const def_message_struct_DATA_TYPES *values;
   sensor_type sensor;
   const char *name;
 } sensor_definition;
@@ -140,24 +113,60 @@ private:
 
 class communication_unit {
 public:
-  unsigned long sendMessage(def_message_struct msgOut, int SUIND);
+  unsigned long int sendMessage(def_message_struct msgOut, int SUIND);
   communication_unit();
-  void handleMsg(def_message_struct msgIn);
-  void handleServerRequest(char *buffer, int sizeOfBuffer);
-  void initESP_NOW(uint8_t **suMac, uint8_t numOfSU, const char *PMK_KEY_IN,
-                   const char *LMK_KEY_IN);
-
+  void handleMsg(def_message_struct msgIn, char* printBuffer = nullptr);
+  void handleServerRequest(char *buffer, int sizeOfBuffer, def_message_struct *msgPtr = nullptr);
+  void initESP_NOW(uint8_t **suMac, uint8_t numOfSU, const char *PMK_KEY_IN, const char *LMK_KEY_IN); 
+  messageAcknowledge *acknowledgementQueue;
+  uint8_t numOfSU = 0;
+  sensor_unit_status sensorUnitStatus[6];
+  msg_queue *messageQueue;
 private:
   uint8_t sens_unit_addresses[6][6];
-  uint8_t numOfSU = 0;
   char names[6][6];
-  sensor_unit_status sensorUnitStatus[6];
   sensor_type availableModules[6][NUM_OF_SENSORS - 1];
-  msg_queue messageQueue;
-  messageAcknowledge acknowledgementQueue;
   esp_now_peer_info_t suPeerInf[6];
-  static unsigned long msgID;
+  static unsigned long int msgID;
 };
+
+class messageAcknowledge {
+public:
+  bool addToWaiting(def_message_struct msg, uint8_t suInd);
+  bool addToFailed(def_message_struct msg, uint8_t suInd);
+  bool retryInFailed(communication_unit *CU);
+  bool isFailedEmpty();
+  bool removeFromWaiting(unsigned long int msgID);
+  bool moveToFailed(unsigned long int msgID);
+  bool removedFromFailed(unsigned long int msgID);
+  bool moveAllDelayedInWaiting();
+  int sizeWaiting();
+  int sizeFailed();
+  int capacityWaiting();
+  int capacityFailed();
+  messageAcknowledge();
+private:
+  //Starts with a size of 8 but will auto resize when needed
+  void resizeFailed();
+  void resizeWaiting();
+  int waitingCapacity = 8;
+  int failedCapacity = 8;
+  int waitingLen = 0;
+  int failedLen = 0;
+
+  SemaphoreHandle_t waitingMutex;
+  SemaphoreHandle_t failedMutex;
+
+  def_message_struct *waitingArray;
+  uint8_t *waitingSuInd;
+  unsigned long int *timeRecv;
+
+  def_message_struct *failedArray; 
+  uint8_t *failedSuInd;
+  uint8_t *timesFailed;
+};
+
+
 
 extern communication_unit *com_unit_ptr;
 extern sensor_unit *sens_unit_ptr;
@@ -185,4 +194,3 @@ void onReceiveCBCU(uint8_t *macAddr, uint8_t *data, int size);
 void onSendCBSU(uint8_t *macAddr, esp_now_send_status_t status);
 void onSendCBCU(uint8_t *macAddr, esp_now_send_status_t status);
 
-#endif

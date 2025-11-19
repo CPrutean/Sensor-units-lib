@@ -3,7 +3,7 @@
 #include "sensor_units.h"
 
 
-const def_message_struct EMPTY_MSG;
+constexpr def_message_struct EMPTY_MSG  = {0, BASE_SENS_UNIT, {0.0, 0.0, 0.0}, 0, 0, {'\0'}, DOUBLE_T};
 
 
 messageAcknowledge::messageAcknowledge() {
@@ -87,14 +87,14 @@ bool messageAcknowledge::addToFailed(def_message_struct msg, uint8_t suInd) {
 }
 
 
-bool messageAcknowledge::retryInFailed(communication_unit *CU) {
+bool messageAcknowledge::retryInFailed(communication_unit &CU) {
   xSemaphoreTakeRecursive(this->failedMutex, portMAX_DELAY == pdTRUE);
   int i;
   for (i = 0; i < this->failedLen; i++) {
-    CU->sendMessage(this->failedArray[i], this->failedSuInd[i]);
+    CU.sendMessage(this->failedArray[i], this->failedSuInd[i]);
     this->timesFailed[i]++;
     if (this->timesFailed[i] > 3) {
-      CU->sensorUnitStatus[this->failedSuInd[i]] = OFFLINE;
+      CU.sensorUnitStatus[this->failedSuInd[i]] = OFFLINE;
       this->removedFromFailed(this->failedArray[i].msgID);
     }
   }

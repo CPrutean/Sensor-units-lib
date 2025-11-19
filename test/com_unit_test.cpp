@@ -8,28 +8,13 @@ void test_com_unit_handling(void) {
     int i;
     def_message_struct msg;
     msg.msgID = 1029231; //Random int no significance
-    int j;
-    double defaultVal = 20.3;
-    char defaultStr[] = "temp"; //Default string value for string tests.
+    msg.command_ind = 0;
+    msg.sensor_req = TEMP_AND_HUMID; 
+    //Most values will come in the form of RESPONSE|VALUES|SENSOR_UNIT_IND|MSGID:223
+    char test1[] = ""; 
+    char test2[] = "";
+    char test3[] = "";
 
-    for (i = 0; i < NUM_OF_SENSORS; i++) {
-        msg.sensor_req = static_cast<sensor_type>(i);
-        j = 0;
-        while (sensors[i].responses[j] != NULL) {
-            snprintf(buffer, sizeof(buffer)-1, "%s", sensors[i].responses[j]);
-            if (sensors[i].values[j] == DOUBLE_T) {
-                snprintf(buffer, sizeof(buffer)-strlen(buffer)-1, "%d", defaultVal);
-            } else {
-                snprintf(buffer, sizeof(buffer)-strlen(buffer), "%s", defaultStr);            
-            }
-            msg.command_ind = j;
-            snprintf(buffer, sizeof(buffer)-strlen(buffer)-1, "%ld", msg.msgID);
-
-            j++;
-        }
-
-
-    }
 }
 
 void test_com_unit_server(void) {

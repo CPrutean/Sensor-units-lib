@@ -5,20 +5,17 @@ class motion_sensor {
 public:
   motion_sensor(PIR &sensor);
   float pullMotion();
-  motion_sensor();
-  bool isValidInstance();
   bool isFunctioning();
 
 private:
-  PIR *motion = nullptr;
-
+  PIR &m_motion;
 };
+
 #else
 class motion_sensor {
   public:
     motion_sensor();
     float pullMotion();
-    bool isValidInstance();
     bool isFunctioning();
     bool flipTestState();
 

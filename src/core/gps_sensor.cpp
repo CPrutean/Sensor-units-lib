@@ -1,35 +1,30 @@
 #include "gps_sensor.h"
 #ifndef DEBUG
-gps_sensor::gps_sensor(TinyGPSPlus &gps, HardwareSerial &gpsSerial, bool hasPPS,
-                       uint8_t ppsPin) {
-  this->gps = &gps;
-  this->gpsSerial = &gpsSerial;
+gps_sensor::gps_sensor(TinyGPSPlus &gps, HardwareSerial &gpsSerial, bool hasPPS, uint8_t ppsPin)
+:m_gps{gps}, m_gpsSerial{gpsSerial}
+{
+
 }
-gps_sensor::gps_sensor() {
-  this->gps = nullptr;
-  this->gpsSerial = nullptr;
-}
+
 double gps_sensor::pullLat() {
-  if (this->isValidInstance()) {
+  if (!this->isFunctioning()) {
     return static_cast<double>(NULL);
   }
-  return static_cast<float>(this->gps->location.lat());
+  return static_cast<float>(this->m_gps.location.lat());
 }
 
 double gps_sensor::pullLong() {
-  if (this->isValidInstance()) {
+  if (this->isFunctioning()) {
     return static_cast<double>(NULL);
   }
-  return this->gps->location.lng();
+  return this->m_gps.location.lng();
 }
 
-bool gps_sensor::isValidInstance() {
-  return this->gps != nullptr && this->gpsSerial != nullptr;
-}
 
 bool gps_sensor::isFunctioning() {
-  return this->pullLat() != 0.0 && this->pullLong() != pullLong();
+  return this->pullLat() != 0.0 && this->pullLong() != 0.0;
 }
+
 #else
 gps_sensor::gps_sensor() {
   this->isValid = true;

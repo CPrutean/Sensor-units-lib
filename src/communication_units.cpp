@@ -20,8 +20,33 @@ int substring(const char *source, int start, int len, char *dest,
   dest[len] = '\0';
   return 0;
 }
-
+/* @breif: communicates with the directly plugged in server using UART and the UART buffer
+ * @param *buffer: the buffer being printed
+ */
 void stageForReturn(char *buffer) { Serial.println(buffer); }
+
+/* @breif: returns the amount of sensor_units available
+ * @return: the number of sensor_units in the class
+ */
+uint8_t communication_unit::getSuCount() const {
+  return m_numOfSU;
+}
+
+
+communication_unit::communication_unit(uint8_t numOfSu, uint8_t** suMac, char** suNames, const char *PMK_KEY_IN, const char *LMK_KEY_IN) {
+  this->m_numOfSU = numOfSu;
+  int i = 0;
+  int j = 0;
+  //create deep copy for ease of use later
+  for (i = 0; i < numOfSu; i++) {
+    m_names[i] = suNames[i];
+    for (j = 0; j < 6; j++) {
+      m_suMac[i][j] = suMac[i][j];
+    }
+  }
+  this->initESP_NOW(PMK_KEY_IN, LMK_KEY_IN);
+}
+
 
 /* @breif: Sends a message using ESP-NOW, sends it to the message confirmation
  * system and returns the corresponding message ID of the message that was sent
@@ -30,37 +55,27 @@ void stageForReturn(char *buffer) { Serial.println(buffer); }
  * @return: Returns the message ID corresponding to the message sent out.
  */
 #ifdef DEBUG
-unsigned long int communication_unit::sendMessage(def_message_struct msgOut, int SUIND) {
-  msgOut.msgID = this->msgID++;
-  if (SUIND > this->numOfSU || SUIND < 0) {
+unsigned long int communication_unit::sendMessage(def_message_struct& msgOut, int SUIND) {
+  msgOut.msgID = m_msgID++;
+  if (SUIND > this->m_numOfSU || SUIND < 0) {
     stageForReturn("INVALID SU IND");
     return -1;
   }
 
-  esp_err_t status =
-      esp_now_send(this->suPeerInf[SUIND].peer_addr, (uint8_t *)&msgOut,
-                   sizeof(def_message_struct));
+  esp_err_t status = esp_now_send(m_suPeerInf[SUIND].peer_addr, (uint8_t *)&msgOut, sizeof(def_message_struct));
   this->acknowledgementQueue->addToWaiting(msgOut, SUIND); 
 
 
   if (status != ESP_OK) {
     this->acknowledgementQueue->moveToFailed(msgOut.msgID);
   }
-  return this->msgID - 1;
+  return m_msgID - 1;
 }
 #else //For testing will only return the index of the sensor unit
 unsigned long communication_unit::sendMessage(def_message_struct msgOut, int SUIND) {
   return SUIND;
 }
 #endif
-
-// breif: default constructor for the communication unit
-communication_unit::communication_unit() {
-  this->msgID = 0;
-  this->acknowledgementQueue = new messageAcknowledge();
-  this->messageQueue = new msg_queue();
-}
-
 
 
 /* breif: initializes ESP-NOW with valid encryption and sensor unit addresses.
@@ -70,9 +85,7 @@ communication_unit::communication_unit() {
  * array used for initializing encryption
  *
  * */
-void communication_unit::initESP_NOW(uint8_t **suAddr, uint8_t numOfSU,
-                                     const char *PMK_KEY_IN,
-                                     const char *LMK_KEY_IN) {
+void communication_unit::initESP_NOW(const char *PMK_KEY_IN, const char *LMK_KEY_IN) {
   Serial.begin(115200);
   WiFi.mode(WIFI_STA);
   if (esp_now_init() != ESP_OK) {
@@ -83,14 +96,14 @@ void communication_unit::initESP_NOW(uint8_t **suAddr, uint8_t numOfSU,
   }
 
   esp_now_set_pmk((uint8_t *)PMK_KEY_IN);
-  for (uint8_t i = 0; i < numOfSU; i++) {
-    memcpy(this->suPeerInf, *(suAddr + i), 6);
+  for (uint8_t i = 0; i < m_numOfSU; i++) {
+    memcpy(m_suPeerInf, *(m_suMac + i), 6);
     for (uint8_t j = 0; j < 16; j++) {
-      this->suPeerInf[i].lmk[j] = *(LMK_KEY_IN + i);
+      m_suPeerInf[i].lmk[j] = *(LMK_KEY_IN + i);
     }
-    this->suPeerInf[i].encrypt = true;
-    this->suPeerInf[i].channel = 0;
-    if (esp_now_add_peer(this->suPeerInf) != ESP_OK) {
+    m_suPeerInf[i].encrypt = true;
+    m_suPeerInf[i].channel = 0;
+    if (esp_now_add_peer(m_suPeerInf) != ESP_OK) {
 #ifdef DEBUG
       Serial.println("Failed to add a peer");
 #endif
@@ -161,7 +174,7 @@ void communication_unit::handleServerRequest(char *buffer, int sizeOfBuffer, def
   if (sizeOfBuffer > 4 && strncmp(buffer, "INIT", 4) == 0) {
     def_message_struct msg;
     msg.sensor_req = BASE_SENS_UNIT;
-    for (uint8_t i = 0; i < this->numOfSU; i++) { // Only send the first 3 BASE_SENS_UNIT commands since we are
+    for (uint8_t i = 0; i < this->m_numOfSU; i++) { // Only send the first 3 BASE_SENS_UNIT commands since we are
                 // just initializing the communication unit
       for (uint8_t j = 0; j < 3; j++) {
         msg.command_ind = j;

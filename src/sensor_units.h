@@ -49,15 +49,19 @@ enum sensor_type {
   BASE_SENS_UNIT,
   NUM_OF_SENSORS
 };
+
+
 enum sensor_unit_status { ONLINE = 0, ERROR, OFFLINE };
+
 enum def_message_struct_DATA_TYPES { DOUBLE_T, STRING_T };
+
 // The default messages sent to and from the communication and sensor units
 typedef struct def_message_struct {
-  int command_ind;
-  sensor_type sensor_req;
+  int command_ind {};
+  sensor_type sensor_req {NUM_OF_SENSORS};
   double values[NUM_OF_SENSORS - 1];
-  uint8_t numValues;
-  unsigned long int msgID;
+  uint8_t numValues {0};
+  unsigned long int msgID {0};
   char message[30] = {'\0'};
   def_message_struct_DATA_TYPES type = DOUBLE_T;
 } def_message_struct;
@@ -88,53 +92,61 @@ typedef struct sensor_definition {
   const char *name;
 } sensor_definition;
 
+
 class sensor_unit {
 public:
-  sensor_unit(sensor_type *modules = nullptr, uint8_t numSensors = 0,
-              char *nameIn = nullptr,
-              temperature_sensor *tempSensorIn = nullptr,
-              gps_sensor *gpsIn = nullptr, motion_sensor *motionIn = nullptr);
-  void sendMessage(def_message_struct msg);
-  void handleMsg(def_message_struct msgIn);
+  sensor_unit() = default;
+  sensor_unit(sensor_type *&modules,  uint8_t numSensors = 0, char *nameIn = nullptr, temperature_sensor *tempSensorIn = nullptr, gps_sensor *gpsIn = nullptr, motion_sensor *motionIn = nullptr);
+  void sendMessage(const def_message_struct &msg);
+  void handleMsg(def_message_struct msgIn); //Needs to be copied since the message dissapears when recieved from the queue
   void initESP_NOW(uint8_t *cuAddrIn, const char *PMK_KEY, const char *LMK_KEY);
-
 private:
-  sensor_type modules[NUM_OF_SENSORS - 1];
-  uint8_t moduleCount;
-  temperature_sensor tempSensor;
-  gps_sensor gpsSensor;
-  motion_sensor motionSensor;
-  uint8_t cuAddr[6];
-  msg_queue messageQueue;
+  sensor_type m_modules[NUM_OF_SENSORS - 1];
+  uint8_t m_moduleCount = 0;
+  temperature_sensor *m_tempSensor;
+  gps_sensor *m_gpsSensor;
+  motion_sensor *m_motionSensor;
+  uint8_t m_cuAddr[6]{};
+  msg_queue m_messageQueue;
   char name[MAX_NAME_LEN];
-  esp_now_peer_info_t cuPeerInf;
-  bool nameFromEEPROM = false;
+  esp_now_peer_info_t m_cuPeerInfo;
 };
+
+
 
 class communication_unit {
 public:
-  unsigned long int sendMessage(def_message_struct msgOut, int SUIND);
-  communication_unit();
+  unsigned long int sendMessage(def_message_struct& msgOut, int SUIND);
+  explicit communication_unit(uint8_t numOfSU = 0, uint8_t** suMac = nullptr, char** sensUnitNames = nullptr
+  ,const char* PMK_KEY_IN = nullptr, const char* LMK_KEY_IN = nullptr);
+
   void handleMsg(def_message_struct msgIn, char* printBuffer = nullptr);
   void handleServerRequest(char *buffer, int sizeOfBuffer, def_message_struct *msgPtr = nullptr);
-  void initESP_NOW(uint8_t **suMac, uint8_t numOfSU, const char *PMK_KEY_IN, const char *LMK_KEY_IN); 
-  messageAcknowledge *acknowledgementQueue;
-  uint8_t numOfSU = 0;
-  sensor_unit_status sensorUnitStatus[6];
-  msg_queue *messageQueue;
+  void initESP_NOW(const char *PMK_KEY_IN, const char *LMK_KEY_IN);
+  communication_unit(const communication_unit& cu) = delete;
+  uint8_t getSuCount() const;
+  sensor_unit_status getSuStatus(int SUIND) const;
+
 private:
-  uint8_t sens_unit_addresses[6][6];
-  char names[6][6];
-  sensor_type availableModules[6][NUM_OF_SENSORS - 1];
-  esp_now_peer_info_t suPeerInf[6];
-  static unsigned long int msgID;
+  uint8_t m_numOfSU = 0;
+  msg_queue *messageQueue = new msg_queue();
+  messageAcknowledge *acknowledgementQueue = nullptr;
+  sensor_unit_status m_sensorUnitStatus[6];
+  uint8_t m_suMac[6][6]{};
+  char *m_names[6]{};
+  sensor_type m_availableModules[6][NUM_OF_SENSORS - 1]{};
+  esp_now_peer_info_t m_suPeerInf[6]{};
+  unsigned long int m_msgID{};
+
 };
+
+
 
 class messageAcknowledge {
 public:
   bool addToWaiting(def_message_struct msg, uint8_t suInd);
   bool addToFailed(def_message_struct msg, uint8_t suInd);
-  bool retryInFailed(communication_unit *CU);
+  bool retryInFailed(communication_unit &CU);
   bool isFailedEmpty();
   bool removeFromWaiting(unsigned long int msgID);
   bool moveToFailed(unsigned long int msgID);
@@ -144,8 +156,8 @@ public:
   int sizeFailed();
   int capacityWaiting();
   int capacityFailed();
-  messageAcknowledge();
-private:
+  explicit messageAcknowledge();
+  messageAcknowledge(const messageAcknowledge& msg) = delete;
   //Starts with a size of 8 but will auto resize when needed
   void resizeFailed();
   void resizeWaiting();

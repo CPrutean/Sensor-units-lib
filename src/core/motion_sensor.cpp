@@ -1,30 +1,22 @@
 #include "motion_sensor.h"
 #ifndef DEBUG
-motion_sensor::motion_sensor(PIR &sensor) { this->motion = &sensor; }
-motion_sensor::motion_sensor() { this->motion = nullptr; }
-float motion_sensor::pullMotion() {
-  if (this->motion != nullptr) {
-    return this->motion->read();
-  } else {
-    return static_cast<float>(NULL);
-  }
+motion_sensor::motion_sensor(PIR &sensor): m_motion{sensor} {
+
 }
 
-bool motion_sensor::isValidInstance() { return this->motion != nullptr; }
+float motion_sensor::pullMotion() {
+    return this->m_motion.read();
+}
 
-bool motion_sensor::isFunctioning() { return this->pullMotion(); }
+bool motion_sensor::isFunctioning() { return static_cast<bool>(this->pullMotion()); }
 
 #else
 float motion_sensor::pullMotion() {
-  return 1;
+  return isValid?1:0;
 }
 
 motion_sensor::motion_sensor() {
   this->isValid = true;
-}
-
-bool motion_sensor::isValidInstance() {
-  return this->isValid;
 }
 
 bool motion_sensor::isFunctioning() {

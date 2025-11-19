@@ -44,6 +44,7 @@ void writeToEEPROM(const char *name, def_message_struct *msg) {
   EEPROM.end();
 }
 
+
 /*
 @breif reads a string from EEPROM and terminates once it reaches the sentinel
 value
@@ -79,38 +80,33 @@ bool readFromEEPROM(char *nameDest, int destSize, def_message_struct *msg) {
  * @Param *tempSensorIn: the temperature sensor being inputted
  *
  */
-sensor_unit::sensor_unit(sensor_type *modules, uint8_t numSensors, char *nameIn,
-                         temperature_sensor *tempSensorIn, gps_sensor *gpsIn,
-                         motion_sensor *motionIn) {
-  this->motionSensor = (motionIn == nullptr) ? motion_sensor() : *motionIn;
-  this->gpsSensor = (gpsIn == nullptr) ? gps_sensor() : *gpsIn;
-  this->tempSensor =
-      (tempSensorIn == nullptr) ? temperature_sensor() : *tempSensorIn;
-  int i;
+sensor_unit::sensor_unit(sensor_type *&modules, uint8_t numSensors, char *nameIn, temperature_sensor *tempSensorIn, gps_sensor *gpsIn, motion_sensor *motionIn) {
+  m_motionSensor = motionIn;
+  m_gpsSensor = gpsIn;
+  m_tempSensor = tempSensorIn;
+  int i = 0;
   for (i = 0; i < numSensors; i++) {
-    this->modules[i] = modules[i];
+    m_modules[i] = modules[i];
   }
 }
 
-void sensor_unit::initESP_NOW(uint8_t *cuAddrIn, const char *PMK_KEY,
-                              const char *LMK_KEY) {
-  // TODO implement initializing ESPNOW with proper encryption.
+void sensor_unit::initESP_NOW(uint8_t *cuAddrIn, const char *PMK_KEY, const char *LMK_KEY) {
   Serial.begin(115200);
   WiFi.mode(WIFI_STA);
   if (esp_now_init() != ESP_OK) {
-#ifdef DEBUG
+    #ifdef DEBUG
     Serial.println("ESP-NOW failed to init exiting");
-#endif
+    #endif
     return;
   }
-  memcpy(this->cuPeerInf.peer_addr, cuAddrIn, 6);
-  this->cuPeerInf.channel = 0;
+  memcpy(m_cuPeerInfo.peer_addr, cuAddrIn, 6);
+  m_cuPeerInfo.channel = 0;
   esp_now_set_pmk((uint8_t *)PMK_KEY);
   for (uint8_t i = 0; i < 16; i++) {
-    this->cuPeerInf.lmk[i] = (uint8_t)*(LMK_KEY + i);
+    m_cuPeerInfo.lmk[i] = (uint8_t)*(LMK_KEY + i);
   }
-  this->cuPeerInf.encrypt = true;
-  if (esp_now_add_peer(&this->cuPeerInf) != ESP_OK) {
+  m_cuPeerInfo.encrypt = true;
+  if (esp_now_add_peer(&m_cuPeerInfo) != ESP_OK) {
 #ifdef DEBUG
     Serial.println("Failed to add peer");
 #endif
@@ -120,9 +116,8 @@ void sensor_unit::initESP_NOW(uint8_t *cuAddrIn, const char *PMK_KEY,
   esp_now_register_send_cb(esp_now_send_cb_t(onSendCBSU));
 }
 
-void sensor_unit::sendMessage(def_message_struct msg) {
-  esp_err_t status = esp_now_send((uint8_t *)&msg, this->cuPeerInf.peer_addr,
-                                  sizeof(def_message_struct));
+void sensor_unit::sendMessage(const def_message_struct &msg) {
+  esp_err_t status = esp_now_send((uint8_t *)&msg, this->m_cuPeerInfo.peer_addr, sizeof(def_message_struct));
 #ifdef DEBUG
   if (status != ESP_OK) {
     Serial.println("Message failed to send");
@@ -137,53 +132,52 @@ void sensor_unit::handleMsg(def_message_struct msgIn) {
   memcpy(&msgOut, &msgIn, sizeof(def_message_struct));
   switch (msgIn.sensor_req) {
   case (TEMP_AND_HUMID):
-    if (!this->tempSensor.isValidInstance()) {
-      snprintf(msgOut.message, sizeof(msgOut.message) - 1, "%s",
-               "INVALID SENSOR PASSED");
+    if (!m_tempSensor->isValidInstance()) {
+      snprintf(msgOut.message, sizeof(msgOut.message) - 1, "%s","INVALID SENSOR PASSED");
       msgOut.type = STRING_T;
-      this->sendMessage(msgOut);
+      sendMessage(msgOut);
       return;
     }
     if (msgIn.command_ind == 0) {
-      msgOut.values[0] = this->tempSensor.pullTemp();
+      msgOut.values[0] = m_tempSensor->pullTemp();
       msgOut.numValues = 1;
     } else if (msgIn.command_ind == 1) {
-      msgOut.values[0] = this->tempSensor.pullHumid();
+      msgOut.values[0] = m_tempSensor->pullHumid();
       msgOut.numValues = 1;
     } else if (msgIn.command_ind == 2) {
-      snprintf(msgOut.message, sizeof(msgOut.message) - 1, "%c",
-               this->tempSensor.pullPref());
+      snprintf(msgOut.message, sizeof(msgOut.message) - 1, "%c", m_tempSensor->pullPref());
       msgOut.type = STRING_T;
     } else if (msgIn.command_ind == 3) {
-      this->tempSensor.pushPref(msgIn.message[0]);
+      m_tempSensor->pushPref(msgOut.message[0]);
+      msgOut.message[1] = '\0';
     }
     break;
 
   case (GPS):
-    if (!this->gpsSensor.isValidInstance()) {
-      snprintf(msgOut.message, sizeof(msgOut.message) - 1, "%s",
-               "INVALID SENSOR PASSED");
+    if (m_gpsSensor->isFunctioning()) {
+      snprintf(msgOut.message, sizeof(msgOut.message) - 1, "%s", "INVALID SENSOR PASSED");
       msgOut.type = STRING_T;
-      this->sendMessage(msgOut);
+      sendMessage(msgOut);
+      return;
     }
 
     if (msgIn.command_ind == 0) {
-      msgOut.values[0] = this->gpsSensor.pullLat();
-      msgOut.values[1] = this->gpsSensor.pullLong();
+      msgOut.values[0] = m_gpsSensor->pullLat();
+      msgOut.values[1] = m_gpsSensor->pullLong();
       msgOut.numValues = 2;
     }
     break;
 
   case (MOTION_SENSOR):
-    if (!this->motionSensor.isValidInstance()) {
-      snprintf(msgOut.message, sizeof(msgOut.message) - 1, "%s",
-               "INVALID SENSOR PASSED");
+    if (m_motionSensor->isFunctioning()) {
+      snprintf(msgOut.message, sizeof(msgOut.message) - 1, "%s", "INVALID SENSOR PASSED");
       msgOut.type = STRING_T;
-      this->sendMessage(msgOut);
+      sendMessage(msgOut);
+      return;
     }
 
     if (msgIn.command_ind == 0) {
-      msgOut.values[0] = this->motionSensor.pullMotion();
+      msgOut.values[0] = m_motionSensor->pullMotion();
       msgOut.numValues = 1;
     }
     break;
@@ -191,44 +185,33 @@ void sensor_unit::handleMsg(def_message_struct msgIn) {
   default:
     sensor_unit_status status = ONLINE;
     if (msgIn.command_ind == 0) {
-      for (uint8_t i = 0; i < this->moduleCount; i++) {
-        if (this->modules[i] == TEMP_AND_HUMID &&
-            !this->tempSensor.isValidInstance() &&
-            !this->tempSensor.isFunctioning()) {
+      for (uint8_t i = 0; i < m_moduleCount; i++) {
+        if (m_modules[i] == TEMP_AND_HUMID && !m_tempSensor->isValidInstance() && !m_tempSensor->isFunctioning()) {
           status = ERROR;
-          snprintf(msgOut.message, strlen(msgOut.message) - sizeof(msgOut) - 1,
-                   "%s", "TEMP_SENS_ERR|");
+          snprintf(msgOut.message, strlen(msgOut.message) - sizeof(msgOut) - 1, "%s", "TEMP_SENS_ERR|");
           msgOut.type = STRING_T;
-        } else if (this->modules[i] == GPS &&
-                   !this->gpsSensor.isValidInstance() &&
-                   !this->gpsSensor.isFunctioning()) {
+        } else if (m_modules[i] == GPS && !m_gpsSensor->isFunctioning() && !m_gpsSensor->isFunctioning()) {
           status = ERROR;
-          snprintf(msgOut.message, strlen(msgOut.message) - sizeof(msgOut) - 1,
-                   "%s", "GPS_SENS_ERR|");
+          snprintf(msgOut.message, strlen(msgOut.message) - sizeof(msgOut) - 1, "%s", "GPS_SENS_ERR|");
           msgOut.type = STRING_T;
           msgOut.type = STRING_T;
-        } else if (this->modules[i] == MOTION_SENSOR &&
-                   !this->motionSensor.isValidInstance() &&
-                   !this->motionSensor.isFunctioning()) {
+        } else if (m_modules[i] == MOTION_SENSOR) {
           status = ERROR;
-          snprintf(msgOut.message, strlen(msgOut.message) - sizeof(msgOut) - 1,
-                   "%s", "MOTION_SENS_ERR|");
+          snprintf(msgOut.message, strlen(msgOut.message) - sizeof(msgOut) - 1, "%s", "MOTION_SENS_ERR|");
           msgOut.type = STRING_T;
         }
-
         msgOut.values[0] = static_cast<double>(status);
         msgOut.numValues = 1;
       }
     } else if (msgIn.command_ind == 1) {
       int lengthOfValues = sizeof(msgOut.values) / sizeof(msgOut.values[0]);
-      for (uint8_t i = 0; i < this->moduleCount && i < lengthOfValues; i++) {
-        msgOut.values[i] = static_cast<double>(this->modules[i]);
+      for (uint8_t i = 0; i < m_moduleCount && i < lengthOfValues; i++) {
+        msgOut.values[i] = static_cast<double>(m_modules[i]);
         msgOut.numValues++;
       }
     } else if (msgIn.command_ind == 2) {
       msgOut.type = STRING_T;
-      if (!readFromEEPROM(msgOut.message, sizeof(msgOut.message) - 1,
-                          &msgOut)) {
+      if (!readFromEEPROM(msgOut.message, sizeof(msgOut.message) - 1, &msgOut)) {
         msgOut.message[0] = '\0';
         snprintf(msgOut.message, sizeof(msgOut.message) - 1, "%s", this->name);
       }
@@ -243,4 +226,5 @@ void sensor_unit::handleMsg(def_message_struct msgIn) {
     }
     break;
   };
+  sendMessage(msgOut);
 }

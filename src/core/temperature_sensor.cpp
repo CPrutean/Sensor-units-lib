@@ -3,28 +3,12 @@
 #include <cmath>
 
 #ifndef DEBUG
-temperature_sensor::temperature_sensor(TEMP_SENSOR_TYPE temp_sensor, DHT *dht) {
-  this->type = temp_sensor;
-  this->dht = dht;
-}
-temperature_sensor::temperature_sensor() {
-  this->type = static_cast<TEMP_SENSOR_TYPE>(0);
-  this->dht = nullptr;
-}
 float temperature_sensor::pullTemp() {
-  if (type == DHT_SENSOR && dht != nullptr) {
-    return dht->readTemperature(pref != 'C');
-  } else {
-    return 0.0f;
-  }
+  return m_dht.readTemperature(pref != 'C');
 }
 
 float temperature_sensor::pullHumid() {
-  if (type == DHT_SENSOR && dht != nullptr) {
-    return dht->readHumidity();
-  } else {
-    return 0.0f;
-  }
+    return m_dht.readHumidity();
 }
 
 char temperature_sensor::pullPref() { return this->pref; }
@@ -38,8 +22,6 @@ void temperature_sensor::pushPref(char pref) {
 #endif
   }
 }
-
-bool temperature_sensor::isValidInstance() { return this->dht != nullptr; }
 
 bool temperature_sensor::isFunctioning() {
   return this->pullTemp() != NAN && this->pullHumid() != NAN;

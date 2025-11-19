@@ -1,5 +1,4 @@
 #include <DHT.h>
-enum TEMP_SENSOR_TYPE { DHT_SENSOR, NONE };
 #ifndef DEBUG
 class temperature_sensor {
 public:
@@ -7,15 +6,11 @@ public:
   float pullHumid();
   char pullPref();
   void pushPref(char pref);
-  temperature_sensor(TEMP_SENSOR_TYPE sensor_type, DHT *dht = nullptr);
-  temperature_sensor();
-  bool isValidInstance();
+  explicit temperature_sensor(DHT &dht): m_dht{dht} {}
   bool isFunctioning();
-
 private:
   char pref = 'C';
-  TEMP_SENSOR_TYPE type;
-  DHT *dht = nullptr;
+  DHT &m_dht;
 };
 #else
 class temperature_sensor {

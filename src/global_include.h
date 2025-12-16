@@ -1,4 +1,6 @@
 #include <Arduino.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/FreeRTOSConfig.h>
 
 #define MAXPACKETSIZE 64
 #define MAXREADINGPERSENSOR 10

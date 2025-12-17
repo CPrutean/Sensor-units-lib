@@ -1,3 +1,5 @@
+#include "MessageAck.h"
+#include "MessageQueue.h"
 #include "global_include.h"
 #include <WiFi.h>
 #include <esp_now.h>
@@ -5,6 +7,8 @@
 #define ____BYTE_ORDER__ __ORDER_BIG__ORDER_BIG_ENDIAN__
 #endif
 
+// SensorUnitManagers are responsible for sending and receiving messages between
+// sensor sensor units
 class SensorUnitManager {
 public:
   enum SensorUnitStatus { ONLINE = 0, ERROR, OFFLINE };
@@ -21,6 +25,9 @@ public:
   }
   void sendToSu(Packet packet, int suNum);
   virtual void handlePacket(const Packet &packet);
+  MessageQueue msgQueue{};
+  MessageAck msgAck{};
+  void initESPNOW();
 
 protected:
   uint8_t m_suMac[10][6]{};
@@ -36,7 +43,7 @@ class WifiSensUnitManager final : public SensorUnitManager {};
 
 class UartSensUnitManager final : public SensorUnitManager {
 private:
-  void handleUartRequest(const char *buffer, size_t sizeOfBuffer);
+  void handleServerRequest(const char *buffer, size_t sizeOfBuffer);
   void printToUartBuffer(const char *buffer, size_t sizeOfBuffer);
 };
 

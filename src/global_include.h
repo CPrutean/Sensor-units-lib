@@ -82,6 +82,7 @@ union dataConverter {
 struct Packet {
   enum DataType_T { STRING_T, DOUBLE_T, FLOAT_T, INT_T };
   uint8_t packetData[MAXPACKETSIZE]{};
+  unsigned long long msgID{};
   size_t size{};
   void convert(dataConverter &convert) {
     if (size <= 0) {
